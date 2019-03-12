@@ -53,6 +53,7 @@ ACTION_STOP_INSTANCES = "StopInstances"
 ACTION_RESIZE_INSTANCES = "ResizeInstances"
 ACTION_RESET_INSTANCES = "ResetInstances"
 ACTION_MODIFY_INSTANCE_ATTRIBUTES = "ModifyInstanceAttributes"
+ACTION_CLONE_INSTANCES = "CloneInstances"
 
 # user data
 ACTION_UPLOAD_USERDATA_ATTACHMENT = "UploadUserDataAttachment"

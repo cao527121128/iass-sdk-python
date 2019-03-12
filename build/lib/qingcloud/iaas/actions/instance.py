@@ -61,6 +61,22 @@ class InstanceAction(object):
 
         return self.conn.send_request(action, body)
 
+    def clone_instances(self, instances=None,
+                           **ignore):
+        """ Clone instances  by instance_id
+        @param instances : the IDs of instances you want to clone from
+        """
+        action = const.ACTION_CLONE_INSTANCES
+        valid_keys = ['instances']
+        body = filter_out_none(locals(), valid_keys)
+        if not self.conn.req_checker.check_params(body,
+                                                  required_params=['instances'],
+                                                  list_params=['instances']
+                                                  ):
+            return None
+
+        return self.conn.send_request(action, body)
+
     def run_instances(self, image_id,
                       instance_type=None,
                       cpu=None,
