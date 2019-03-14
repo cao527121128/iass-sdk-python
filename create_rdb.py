@@ -71,6 +71,9 @@ def create_rdb(vxnet_id):
     g_rdb_id = ret.get("rdb")
     print("g_rdb_id=%s" %(g_rdb_id))
 
+    if not g_rdb_id:
+        print("create rdb fail")
+        exit(-1)
     status = "pending"
     while status != "active":
         time.sleep(1)

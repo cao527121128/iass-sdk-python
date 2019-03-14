@@ -29,9 +29,6 @@ g_cloned_instance_id = None
 
 
 
-
-
-
 def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
     print("connect_iaas")
     print("starting connect_to_zone ...")
@@ -53,35 +50,35 @@ def clone_instances(resource_id):
     print("子线程启动")
     print("clone_instances")
     global conn
+    global g_cloned_instance_id
     for res_id in resource_id:
         ret = conn.clone_instances(instances=[res_id])
         if ret < 0:
             print("clone_instances fail")
             exit(-1)
         print("ret==%s" % (ret))
-        instance_id = ret.get("instances")
-        print("instance_id=%s" %(instance_id))
-        if not instance_id:
-            print("clone instance_id fail")
+        g_cloned_instance_id = ret.get("instances")
+        print("g_cloned_instance_id=%s" %(g_cloned_instance_id))
+        if not g_cloned_instance_id:
+            print("clone instances fail")
             exit(-1)
         status = "pending"
         while status != "running":
             time.sleep(1)
-            status = get_instances_status(instance_id)
+            status = get_instances_status()
         print("子线程结束")
 
 
 
 
-def get_instances_status(instance_id):
+def get_instances_status():
     print("get_instances_status")
     global conn
     global g_cloned_instance_id
-    ret = conn.describe_instances(instances=instance_id)
+    ret = conn.describe_instances(instances=g_cloned_instance_id)
     if ret < 0:
         print("describe_instances fail")
         exit(-1)
-    print(ret)
     matched_instance = ret['instance_set']
     print("matched_instance==%s"%(matched_instance))
 
@@ -92,58 +89,8 @@ def get_instances_status(instance_id):
 
     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     status = wanted_instance.get("status")
-    instance_id = wanted_instance.get("instance_id")
-    g_cloned_instance_id = instance_id
     print("status=%s" % (status))
-    print("g_cloned_instance_id=%s" %(g_cloned_instance_id))
     return status
-
-
-def get_loadbalancer_transition_status():
-    print("get_loadbalancer_transition_status")
-    global conn
-    global loadbalancer_id
-    ret = conn.describe_loadbalancers(limit=1,search_word='vdi-portal-loadbalancer',verbose=1)
-    if ret < 0:
-        print("describe_loadbalancers fail")
-        exit(-1)
-    print(ret)
-    matched_loadbalancer = ret['loadbalancer_set']
-    print("matched_loadbalancer==%s"%(matched_loadbalancer))
-
-    print("************************************")
-
-    wanted_loadbalancer = ret['loadbalancer_set'][0]
-    print("wanted_loadbalancer==%s" % (wanted_loadbalancer))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    transition_status = wanted_loadbalancer.get('transition_status')
-    print("transition_status=%s" % (transition_status))
-    return transition_status
-
-def get_loadbalancer_listener_id():
-    print("get_loadbalancer_listener_id")
-    global conn
-    global loadbalancer_id
-    ret = conn.describe_loadbalancers(limit=1,search_word='vdi-portal-loadbalancer',verbose=1)
-    if ret < 0:
-        print("describe_loadbalancers fail")
-        exit(-1)
-    print(ret)
-    matched_loadbalancer = ret['loadbalancer_set']
-    print("matched_loadbalancer==%s"%(matched_loadbalancer))
-
-    print("************************************")
-
-    wanted_loadbalancer = ret['loadbalancer_set'][0]
-    print("wanted_loadbalancer==%s" % (wanted_loadbalancer))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    listeners = wanted_loadbalancer['listeners']
-
-    loadbalancer_listener_id = listeners[0].get('loadbalancer_listener_id')
-    print("loadbalancer_listener_id=%s" % (loadbalancer_listener_id))
-    return loadbalancer_listener_id
 
 
 
@@ -160,165 +107,13 @@ def get_vxnet_id():
 
     print("************************************")
 
-    wanted_vxnet = ret['vxnet_set'][0]
+    wanted_vxnet = matched_vxnet[0]
     print("wanted_vxnet==%s" % (wanted_vxnet))
 
     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     vxnet_id = wanted_vxnet.get('vxnet_id')
     print("vxnet_id=%s" % (vxnet_id))
     return vxnet_id
-
-
-def get_user_id():
-    print("get_user_id")
-    global conn
-    global access_key_id
-    #查看access_keys详情
-    ret = conn.describe_access_keys(access_keys=[access_key_id])
-    if ret < 0:
-        print("describe_access_keys fail")
-        exit(-1)
-    matched_access_key = ret['access_key_set']
-    print("matched_access_key==%s" % (matched_access_key))
-
-    print("************************************")
-
-    wanted_access_key = ret['access_key_set'][0]
-    print("wanted_access_key==%s" % (wanted_access_key))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    user_id = wanted_access_key.get('owner')
-    print("user_id=%s" % (user_id))
-    return user_id
-
-def get_eip_id():
-    print("get_eip_id")
-    global conn
-    #查看公网IP
-    user_id = get_user_id()
-    ret = conn.describe_eips(limit=1, status=['available'], owner=user_id, verbose=1)
-    if ret < 0:
-        print("describe_eips fail")
-        exit(-1)
-    matched_eip = ret['eip_set']
-    print("matched_eip==%s" % (matched_eip))
-
-    print("************************************")
-    if  not matched_eip:
-        return None
-    wanted_eip = matched_eip[0]
-    print("wanted_eip==%s" % (wanted_eip))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    eip_id = wanted_eip['eip_id']
-    print("eip_id=%s" % (eip_id))
-    return eip_id
-
-def get_eip_addr_by_eip_id(eip_id):
-    print("get_eip_addr")
-    global conn
-    #查看公网IP
-    user_id = get_user_id()
-    ret = conn.describe_eips(eips=[eip_id],owner=user_id, verbose=1)
-    if ret < 0:
-        print("describe_eips fail")
-        exit(-1)
-    matched_eip = ret['eip_set']
-    print("matched_eip==%s" % (matched_eip))
-
-    print("************************************")
-    if  not matched_eip:
-        return None
-    wanted_eip = matched_eip[0]
-    print("wanted_eip==%s" % (wanted_eip))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    eip_addr = wanted_eip['eip_addr']
-    print("eip_addr=%s" % (eip_addr))
-    return eip_addr
-
-
-def add_loadbalancer_listeners(loadbalancer_id):
-    print("子线程启动")
-    print("add_loadbalancer_listeners")
-    global conn
-    listeners=[
-        {"listener_protocol":"http",
-         "listener_port":80,
-         "backend_protocol":"http",
-         "balance_mode":"roundrobin",
-         "loadbalancer_listener_name":"http-listener"
-        }
-    ]
-
-    ret = conn.add_listeners_to_loadbalancer(
-        loadbalancer=loadbalancer_id,
-        listeners=listeners
-    )
-
-    if ret < 0:
-        print("add_listeners_to_loadbalancer fail")
-        exit(-1)
-    print("ret==%s" % (ret))
-
-    # status = "pending"
-    # while status != "active":
-    #     time.sleep(1)
-    #     status = get_loadbalancer_status()
-    print("子线程结束")
-
-def update_loadbalancers(loadbalancer_id):
-    print("子线程启动")
-    print("update_loadbalancers")
-    global conn
-    user_id = get_user_id()
-    ret = conn.update_loadbalancers(
-        loadbalancers=[loadbalancer_id],
-        target_user=user_id
-    )
-
-    if ret < 0:
-        print("update_loadbalancers fail")
-        exit(-1)
-    print("ret==%s" % (ret))
-
-    status = "pending"
-    transition_status = "updating"
-    while status != "active":
-        while transition_status !="":
-            time.sleep(1)
-            transition_status = get_loadbalancer_transition_status()
-        time.sleep(1)
-        status = get_loadbalancer_status()
-    print("子线程结束")
-
-def add_backends_to_listener(loadbalancer_listener_id,resource_id):
-    print("子线程启动")
-    print("add_backends_to_listener")
-    global conn
-    for res_id in resource_id:
-        backends=[
-            {"resource_id":res_id,
-             "port":80,"weight":"5",
-             "loadbalancer_backend_name":"backend_desktop_server_01"
-            }
-        ]
-        print("backends=%s" %(backends))
-        ret = conn.add_backends_to_listener(
-            loadbalancer_listener=loadbalancer_listener_id,
-            backends=backends
-        )
-
-        if ret < 0:
-            print("add_backends_to_listener fail")
-            exit(-1)
-        print("ret==%s" % (ret))
-
-    # status = "pending"
-    # while status != "active":
-    #     time.sleep(1)
-    #     status = get_loadbalancer_status()
-    print("子线程结束")
 
 def explode_array(list_str, separator = ","):
     ''' explode list string into array '''
@@ -362,6 +157,7 @@ if __name__ == "__main__":
 
 
     (options, _) = opt_parser.parse_args(sys.argv)
+    global access_key_id
     zone_id = options.zone_id
     access_key_id = options.access_key_id
     secret_access_key = options.secret_access_key
@@ -376,6 +172,7 @@ if __name__ == "__main__":
     print("host:%s" % (host))
     print("port:%s" % (port))
     print("protocol:%s" % (protocol))
+    print("vxnet_id:%s" % (vxnet_id))
     print("resource_id:%s" % (resource_id))
 
 

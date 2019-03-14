@@ -66,6 +66,9 @@ def create_cache(vxnet_id):
     g_cache_id = ret.get("cache_id")
     print("g_cache_id=%s" % (g_cache_id))
 
+    if not g_cache_id:
+        print("create cache fail")
+        exit(-1)
     status = "pending"
     while status != "active":
         time.sleep(1)
