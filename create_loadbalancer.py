@@ -123,29 +123,6 @@ def get_loadbalancer_transition_status():
     print("transition_status=%s" % (transition_status))
     return transition_status
 
-# def get_loadbalancer_listener_id():
-#     print("get_loadbalancer_listener_id")
-#     global conn
-#     global g_loadbalancer_id
-#     ret = conn.describe_loadbalancers(loadbalancers=[g_loadbalancer_id], verbose=1)
-#     if ret < 0:
-#         print("describe_loadbalancers fail")
-#         exit(-1)
-#     print(ret)
-#     matched_loadbalancer = ret['loadbalancer_set']
-#     print("matched_loadbalancer==%s"%(matched_loadbalancer))
-#
-#     print("************************************")
-#
-#     wanted_loadbalancer = matched_loadbalancer[0]
-#     print("wanted_loadbalancer==%s" % (wanted_loadbalancer))
-#
-#     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-#     listeners = wanted_loadbalancer['listeners']
-#
-#     loadbalancer_listener_id = listeners[0].get('loadbalancer_listener_id')
-#     print("loadbalancer_listener_id=%s" % (loadbalancer_listener_id))
-#     return loadbalancer_listener_id
 
 
 
@@ -207,7 +184,8 @@ def get_eip_id():
 
     # print("************************************")
     if  not matched_eip:
-        return None
+        print("matched_eip is null")
+        exit(-1)
     wanted_eip = matched_eip[0]
     print("wanted_eip==%s" % (wanted_eip))
 
@@ -226,15 +204,16 @@ def get_eip_addr_by_eip_id(eip_id):
         print("describe_eips fail")
         exit(-1)
     matched_eip = ret['eip_set']
-    # print("matched_eip==%s" % (matched_eip))
+    print("matched_eip==%s" % (matched_eip))
 
-    # print("************************************")
+    print("************************************")
     if  not matched_eip:
-        return None
+        print("get_eip_addr_by_eip_id matched_eip is null")
+        exit(-1)
     wanted_eip = matched_eip[0]
-    # print("wanted_eip==%s" % (wanted_eip))
+    print("wanted_eip==%s" % (wanted_eip))
 
-    # print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     eip_addr = wanted_eip['eip_addr']
     print("eip_addr=%s" % (eip_addr))
     return eip_addr
