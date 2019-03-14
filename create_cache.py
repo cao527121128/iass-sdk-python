@@ -22,7 +22,7 @@ host = None
 port = None
 protocol = None
 vxnet_id = None
-
+g_cache_id = None
 
 
 
@@ -49,6 +49,7 @@ def create_cache(vxnet_id):
     print("子线程启动")
     print("create_cache")
     global conn
+    global g_cache_id
 
     ret = conn.create_cache(
         # vxnet='vxnet-glp08w9',
@@ -62,6 +63,9 @@ def create_cache(vxnet_id):
         exit(-1)
     print("ret==%s" % (ret))
 
+    g_cache_id = ret.get("cache_id")
+    print("g_cache_id=%s" % (g_cache_id))
+
     status = "pending"
     while status != "active":
         time.sleep(1)
@@ -74,17 +78,18 @@ def create_cache(vxnet_id):
 def get_cache_status():
     print("get_cache_status")
     global conn
-    ret = conn.describe_caches(limit=1,search_word='vdi-portal-memcached',verbose=1)
+    global g_cache_id
+    ret = conn.describe_caches(caches=[g_cache_id],verbose=1)
     if ret < 0:
         print("describe_caches fail")
         exit(-1)
-    print(ret)
+    # print(ret)
     matched_cache = ret['cache_set']
     print("matched_cache==%s"%(matched_cache))
 
     print("************************************")
 
-    wanted_cache = ret['cache_set'][0]
+    wanted_cache = matched_cache[0]
     print("wanted_cache==%s" % (wanted_cache))
 
     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
@@ -97,16 +102,17 @@ def get_cache_status():
 def get_memcached_ip():
     print("get_memcached_ip")
     global conn
-    ret = conn.describe_caches(limit=1,search_word='vdi-portal-memcached',verbose=1)
+    global g_cache_id
+    ret = conn.describe_caches(caches=[g_cache_id], verbose=1)
     if ret < 0:
         print("describe_caches fail")
         exit(-1)
-    print(ret)
+    # print(ret)
     matched_cache = ret['cache_set']
     print("matched_cache==%s"%(matched_cache))
 
     print("************************************")
-    wanted_cache = ret['cache_set'][0]
+    wanted_cache = matched_cache[0]
     print("wanted_cache==%s" % (wanted_cache))
 
     print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
@@ -132,37 +138,13 @@ def get_vxnet_id():
 
     print("************************************")
 
-    wanted_vxnet = ret['vxnet_set'][0]
+    wanted_vxnet = matched_vxnet[0]
     print("wanted_vxnet==%s" % (wanted_vxnet))
 
     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     vxnet_id = wanted_vxnet.get('vxnet_id')
     print("vxnet_id=%s" % (vxnet_id))
     return vxnet_id
-
-
-def get_user_id():
-    print("get_user_id")
-    global conn
-    global access_key_id
-    #查看access_keys详情
-    ret = conn.describe_access_keys(access_keys=[access_key_id])
-    if ret < 0:
-        print("describe_access_keys fail")
-        exit(-1)
-    matched_access_key = ret['access_key_set']
-    print("matched_access_key==%s" % (matched_access_key))
-
-    print("************************************")
-
-    wanted_access_key = ret['access_key_set'][0]
-    print("wanted_access_key==%s" % (wanted_access_key))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    user_id = wanted_access_key.get('owner')
-    print("user_id=%s" % (user_id))
-    return user_id
-
 
 
 if __name__ == "__main__":
@@ -190,6 +172,8 @@ if __name__ == "__main__":
                           dest="vxnet_id", help='vxnet id', default="")
 
     (options, _) = opt_parser.parse_args(sys.argv)
+    global access_key_id
+
     zone_id = options.zone_id
     access_key_id = options.access_key_id
     secret_access_key = options.secret_access_key
@@ -203,6 +187,7 @@ if __name__ == "__main__":
     print("host:%s" % (host))
     print("port:%s" % (port))
     print("protocol:%s" % (protocol))
+    print("vxnet_id:%s" % (vxnet_id))
 
 
     #连接iaas后台
@@ -218,9 +203,6 @@ if __name__ == "__main__":
     #创建子线程执行创建数据库的操作
     t = threading.Thread(target=create_cache,args=(vxnet_id,))
     t.start()
-
-
-    #等待子线程执行完毕
     t.join()
 
 
@@ -229,12 +211,6 @@ if __name__ == "__main__":
     ret = get_memcached_ip()
     with open(memcached_ip_conf, "w+") as f1:
         f1.write("MEMCACHED_ADDRESS %s" %(ret))
-
-    # #user_id 写入文件
-    # user_id_conf = "/tmp/user_id_conf"
-    # ret = get_user_id()
-    # with open(user_id_conf, "w+") as f1:
-    #     f1.write("USER_ID %s" %(ret))
 
     print("主线程结束")
 
