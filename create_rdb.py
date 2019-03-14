@@ -22,6 +22,7 @@ host = None
 port = None
 protocol = None
 vxnet_id = None
+g_rdb_id = None
 
 
 
@@ -49,6 +50,7 @@ def create_rdb(vxnet_id):
     print("子线程启动")
     print("create_rdb")
     global conn
+    global g_rdb_id
 
     ret = conn.create_rdb(
         # vxnet='vxnet-glp08w9',
@@ -66,6 +68,9 @@ def create_rdb(vxnet_id):
         exit(-1)
     print("ret==%s" % (ret))
 
+    g_rdb_id = ret.get("rdb")
+    print("g_rdb_id=%s" %(g_rdb_id))
+
     status = "pending"
     while status != "active":
         time.sleep(1)
@@ -78,7 +83,8 @@ def create_rdb(vxnet_id):
 def get_rdb_status():
     print("get_rdb_status")
     global conn
-    ret = conn.describe_rdbs(limit=1,rdb_name='vdi-portal-postgresql')
+    global g_rdb_id
+    ret = conn.describe_rdbs(rdbs=[g_rdb_id])
     if ret < 0:
         print("describe_rdbs fail")
         exit(-1)
@@ -88,7 +94,7 @@ def get_rdb_status():
 
     print("************************************")
 
-    wanted_rdb = ret['rdb_set'][0]
+    wanted_rdb = matched_rdb[0]
     print("wanted_rdb==%s" % (wanted_rdb))
 
     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
@@ -102,7 +108,8 @@ def get_rdb_status():
 def get_rdb_master_ip():
     print("get_rdb_master_ip")
     global conn
-    ret = conn.describe_rdbs(limit=1,rdb_name='vdi-portal-postgresql')
+    global g_rdb_id
+    ret = conn.describe_rdbs(rdbs=[g_rdb_id])
     if ret < 0:
         print("describe_rdbs fail")
         exit(-1)
@@ -112,13 +119,12 @@ def get_rdb_master_ip():
 
     print("************************************")
 
-    wanted_rdb = ret['rdb_set'][0]
+    wanted_rdb = matched_rdb[0]
     print("wanted_rdb==%s" % (wanted_rdb))
 
     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    status = wanted_rdb.get('status')
     master_ip = wanted_rdb.get('master_ip')
-    print("status=%s master_ip=%s" % (status, master_ip))
+    print("master_ip=%s" % (master_ip))
     return master_ip
 
 def get_vxnet_id():
@@ -134,7 +140,7 @@ def get_vxnet_id():
 
     print("************************************")
 
-    wanted_vxnet = ret['vxnet_set'][0]
+    wanted_vxnet = matched_vxnet[0]
     print("wanted_vxnet==%s" % (wanted_vxnet))
 
     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
@@ -157,7 +163,7 @@ def get_user_id():
 
     print("************************************")
 
-    wanted_access_key = ret['access_key_set'][0]
+    wanted_access_key = matched_access_key[0]
     print("wanted_access_key==%s" % (wanted_access_key))
 
     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
@@ -192,6 +198,9 @@ if __name__ == "__main__":
                           dest="vxnet_id", help='vxnet id', default="")
 
     (options, _) = opt_parser.parse_args(sys.argv)
+
+    global access_key_id
+
     zone_id = options.zone_id
     access_key_id = options.access_key_id
     secret_access_key = options.secret_access_key
@@ -205,6 +214,7 @@ if __name__ == "__main__":
     print("host:%s" % (host))
     print("port:%s" % (port))
     print("protocol:%s" % (protocol))
+    print("vxnet_id:%s" % (vxnet_id))
 
 
     #连接iaas后台
@@ -220,9 +230,6 @@ if __name__ == "__main__":
     #创建子线程执行创建数据库的操作
     t = threading.Thread(target=create_rdb,args=(vxnet_id,))
     t.start()
-    # create_rdb()
-
-    #等待子线程执行完毕
     t.join()
 
 
