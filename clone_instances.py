@@ -26,6 +26,7 @@ loadbalancer_id = None
 loadbalancer_listener_id = None
 resource_id = None
 g_cloned_instance_id = None
+g_cloned_instance_ip = None
 
 
 
@@ -51,6 +52,7 @@ def clone_instances(resource_id):
     print("clone_instances")
     global conn
     global g_cloned_instance_id
+    global g_cloned_instance_ip
     for res_id in resource_id:
         ret = conn.clone_instances(instances=[res_id])
         if ret < 0:
@@ -67,6 +69,32 @@ def clone_instances(resource_id):
             time.sleep(1)
             status = get_instances_status()
         print("子线程结束")
+
+
+def get_instances_private_ip():
+    print("get_instances_private_ip")
+    global conn
+    global g_cloned_instance_id
+    ret = conn.describe_instances(instances=g_cloned_instance_id,verbose=1)
+    if ret < 0:
+        print("describe_instances fail")
+        exit(-1)
+    matched_instance = ret['instance_set']
+    print("matched_instance==%s"%(matched_instance))
+
+    print("************************************")
+
+    wanted_instance = matched_instance[0]
+    print("wanted_instance==%s" % (wanted_instance))
+
+
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    vxnets = wanted_instance['vxnets']
+    print("vxnets==%s" %(vxnets))
+
+    private_ip = vxnets[0].get('private_ip')
+    print("private_ip=%s" % (private_ip))
+    return private_ip
 
 
 
@@ -128,6 +156,19 @@ def explode_array(list_str, separator = ","):
             result.append(disk)
     return result
 
+def get_clone_instance_ip():
+    print("子线程启动")
+    print("get_clone_instance_ip")
+    global g_cloned_instance_ip
+    private_ip = get_instances_private_ip()
+    while private_ip == "":
+        private_ip = get_instances_private_ip()
+        time.sleep(1)
+    g_cloned_instance_ip = private_ip
+    print("g_cloned_instance_ip=%s" %(g_cloned_instance_ip))
+    print("子线程结束")
+
+
 
 if __name__ == "__main__":
     print("主线程启动")
@@ -157,7 +198,7 @@ if __name__ == "__main__":
 
 
     (options, _) = opt_parser.parse_args(sys.argv)
-    global access_key_id
+
     zone_id = options.zone_id
     access_key_id = options.access_key_id
     secret_access_key = options.secret_access_key
@@ -194,10 +235,21 @@ if __name__ == "__main__":
 
 
 
+    #创建子线程--获取克隆主机的私有网络IP
+    t2 = threading.Thread(target=get_clone_instance_ip)
+    t2.start()
+    t2.join()
+
+
     #g_cloned_instance_id 写入文件
     cloned_instance_id_conf = "/tmp/cloned_instance_id_conf"
     with open(cloned_instance_id_conf, "w+") as f1:
         f1.write("CLONED_INSTANCE_ID %s" %(g_cloned_instance_id))
+
+    # g_cloned_instance_ip 写入文件
+    cloned_instance_ip_conf = "/tmp/cloned_instance_ip_conf"
+    with open(cloned_instance_ip_conf, "w+") as f1:
+        f1.write("CLONED_INSTANCE_IP %s" % (g_cloned_instance_ip))
 
 
     print("主线程结束")
