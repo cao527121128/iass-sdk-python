@@ -231,7 +231,13 @@ def add_loadbalancer_listeners():
          "backend_protocol":"http",
          "balance_mode":"roundrobin",
          "loadbalancer_listener_name":"http-listener"
-        }
+        },
+        {"listener_protocol": "http",
+         "listener_port": 9520,
+         "backend_protocol": "http",
+         "balance_mode": "roundrobin",
+         "loadbalancer_listener_name": "websocket"
+         }
     ]
 
     ret = conn.add_listeners_to_loadbalancer(
@@ -288,17 +294,18 @@ def add_backends_to_listener(resource_id):
 
         print("g_loadbalancer_listeners_id=%s" % (g_loadbalancer_listeners_id))
         print("g_loadbalancer_listeners_id[0]=%s" % (g_loadbalancer_listeners_id[0]))
+        print("g_loadbalancer_listeners_id[1]=%s" % (g_loadbalancer_listeners_id[1]))
         print("backends=%s" % (backends))
+        for listeners_id in g_loadbalancer_listeners_id:
+            ret = conn.add_backends_to_listener(
+                loadbalancer_listener=listeners_id,
+                backends=backends
+            )
 
-        ret = conn.add_backends_to_listener(
-            loadbalancer_listener=g_loadbalancer_listeners_id[0],
-            backends=backends
-        )
-
-        if ret < 0:
-            print("add_backends_to_listener fail")
-            exit(-1)
-        print("ret==%s" % (ret))
+            if ret < 0:
+                print("add_backends_to_listener fail")
+                exit(-1)
+            print("ret==%s" % (ret))
     print("子线程结束")
 
 def explode_array(list_str, separator = ","):
