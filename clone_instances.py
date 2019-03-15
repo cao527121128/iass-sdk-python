@@ -59,8 +59,10 @@ def clone_instances(resource_id):
             print("clone_instances fail")
             exit(-1)
         print("ret==%s" % (ret))
-        g_cloned_instance_id = ret.get("instances")
+        # g_cloned_instance_id = ret.get("instances")
+        g_cloned_instance_id = ret['instances']
         print("g_cloned_instance_id=%s" %(g_cloned_instance_id))
+
         if not g_cloned_instance_id:
             print("clone instances fail")
             exit(-1)
@@ -240,11 +242,12 @@ if __name__ == "__main__":
     t2.start()
     t2.join()
 
-
-    #g_cloned_instance_id 写入文件
+    instance_id = g_cloned_instance_id[0]
+    print("instance_id=%s" % (instance_id))
+    #instance_id 写入文件
     cloned_instance_id_conf = "/tmp/cloned_instance_id_conf"
     with open(cloned_instance_id_conf, "w+") as f1:
-        f1.write("CLONED_INSTANCE_ID %s" %(g_cloned_instance_id))
+        f1.write("CLONED_INSTANCE_ID %s" %(instance_id))
 
     # g_cloned_instance_ip 写入文件
     cloned_instance_ip_conf = "/tmp/cloned_instance_ip_conf"
