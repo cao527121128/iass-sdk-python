@@ -279,33 +279,95 @@ def update_loadbalancers():
         status = get_loadbalancer_status()
     print("子线程结束")
 
+# def add_backends_to_listener(resource_id):
+#     print("子线程启动")
+#     print("add_backends_to_listener")
+#     global conn
+#     global g_loadbalancer_listeners_id
+#     for res_id in resource_id:
+#         backends=[
+#             {"resource_id":res_id,
+#              "port":80,"weight":"1",
+#              "loadbalancer_backend_name":"backend_desktop_server_01"
+#             }
+#         ]
+#
+#         print("g_loadbalancer_listeners_id=%s" % (g_loadbalancer_listeners_id))
+#         print("g_loadbalancer_listeners_id[0]=%s" % (g_loadbalancer_listeners_id[0]))
+#         print("g_loadbalancer_listeners_id[1]=%s" % (g_loadbalancer_listeners_id[1]))
+#         print("backends=%s" % (backends))
+#         for listeners_id in g_loadbalancer_listeners_id:
+#             ret = conn.add_backends_to_listener(
+#                 loadbalancer_listener=listeners_id,
+#                 backends=backends
+#             )
+#
+#             if ret < 0:
+#                 print("add_backends_to_listener fail")
+#                 exit(-1)
+#             print("ret==%s" % (ret))
+#     print("子线程结束")
+
 def add_backends_to_listener(resource_id):
     print("子线程启动")
     print("add_backends_to_listener")
     global conn
     global g_loadbalancer_listeners_id
-    for res_id in resource_id:
-        backends=[
-            {"resource_id":res_id,
-             "port":80,"weight":"1",
-             "loadbalancer_backend_name":"backend_desktop_server_01"
-            }
-        ]
+    for loadbalancer_listener_id in g_loadbalancer_listeners_id:
+        ret = conn.describe_loadbalancer_listeners(loadbalancer_listeners=[loadbalancer_listener_id])
+        matched_loadbalancer_listener = ret['loadbalancer_listener_set']
+        print("matched_loadbalancer_listener=%s" %(matched_loadbalancer_listener))
 
-        print("g_loadbalancer_listeners_id=%s" % (g_loadbalancer_listeners_id))
-        print("g_loadbalancer_listeners_id[0]=%s" % (g_loadbalancer_listeners_id[0]))
-        print("g_loadbalancer_listeners_id[1]=%s" % (g_loadbalancer_listeners_id[1]))
-        print("backends=%s" % (backends))
-        for listeners_id in g_loadbalancer_listeners_id:
-            ret = conn.add_backends_to_listener(
-                loadbalancer_listener=listeners_id,
-                backends=backends
-            )
+        print("************************************")
+        wanted_loadbalancer_listener = matched_loadbalancer_listener[0]
 
-            if ret < 0:
-                print("add_backends_to_listener fail")
+        print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+        print("wanted_loadbalancer_listener=%s" %(wanted_loadbalancer_listener))
+
+        print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+        listener_port = wanted_loadbalancer_listener.get("listener_port")
+        print("listener_port=%s" %(listener_port))
+
+        for res_id in resource_id:
+            if listener_port == 80:
+                backends=[
+                    {"resource_id":res_id,
+                     "port":80,
+                     "weight":"1",
+                     "loadbalancer_backend_name":"backend_desktop_server_01"
+                    }
+                ]
+                print("backends=%s" % (backends))
+                ret = conn.add_backends_to_listener(
+                                loadbalancer_listener=loadbalancer_listener_id,
+                                backends=backends
+                            )
+                if ret < 0:
+                    print("add_backends_to_listener fail")
+                    exit(-1)
+                print("ret==%s" % (ret))
+
+            elif listener_port == 9520:
+                backends=[
+                    {"resource_id":res_id,
+                     "port":9520,
+                     "weight":"1",
+                     "loadbalancer_backend_name":"backend_desktop_server_01"
+                    }
+                ]
+                print("backends=%s" % (backends))
+                ret = conn.add_backends_to_listener(
+                                loadbalancer_listener=loadbalancer_listener_id,
+                                backends=backends
+                            )
+                if ret < 0:
+                    print("add_backends_to_listener fail")
+                    exit(-1)
+                print("ret==%s" % (ret))
+            else:
+                print("invalid listener_port")
                 exit(-1)
-            print("ret==%s" % (ret))
+
     print("子线程结束")
 
 def explode_array(list_str, separator = ","):
