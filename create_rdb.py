@@ -202,7 +202,7 @@ if __name__ == "__main__":
 
     (options, _) = opt_parser.parse_args(sys.argv)
 
-    global access_key_id
+
 
     zone_id = options.zone_id
     access_key_id = options.access_key_id
