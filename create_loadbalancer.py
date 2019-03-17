@@ -237,6 +237,12 @@ def add_loadbalancer_listeners():
          "backend_protocol": "http",
          "balance_mode": "roundrobin",
          "loadbalancer_listener_name": "websocket"
+         },
+        {"listener_protocol": "http",
+         "listener_port": 10080,
+         "backend_protocol": "http",
+         "balance_mode": "roundrobin",
+         "loadbalancer_listener_name": "citrix"
          }
     ]
 
@@ -351,6 +357,23 @@ def add_backends_to_listener(resource_id):
                 backends=[
                     {"resource_id":res_id,
                      "port":9520,
+                     "weight":"1",
+                     "loadbalancer_backend_name":"backend_desktop_server_01"
+                    }
+                ]
+                print("backends=%s" % (backends))
+                ret = conn.add_backends_to_listener(
+                                loadbalancer_listener=loadbalancer_listener_id,
+                                backends=backends
+                            )
+                if ret < 0:
+                    print("add_backends_to_listener fail")
+                    exit(-1)
+                print("ret==%s" % (ret))
+            elif listener_port == 10080:
+                backends=[
+                    {"resource_id":res_id,
+                     "port":10080,
                      "weight":"1",
                      "loadbalancer_backend_name":"backend_desktop_server_01"
                     }
