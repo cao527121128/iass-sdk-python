@@ -52,6 +52,11 @@ def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
         exit(-1)
     print("conn==%s" %(conn))
 
+    user_id=get_user_id()
+    if not user_id:
+        print("user_id is null")
+        exit(-1)
+
 def create_loadbalancer(vxnet_id):
     print("子线程启动")
     print("create_loadbalancer")
@@ -68,12 +73,28 @@ def create_loadbalancer(vxnet_id):
         print("create_loadbalancer fail")
         exit(-1)
     print("ret==%s" % (ret))
+
+    #check ret_code
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code!=0:
+        print("create_loadbalancer ret_code is error")
+        exit(-1)
+
     g_loadbalancer_id = ret.get("loadbalancer_id")
     print("g_loadbalancer_id=%s" %(g_loadbalancer_id))
     status = "pending"
-    while status != "active":
+    num = 0
+    while status != "active" and num <= 300:
         time.sleep(1)
         status = get_loadbalancer_status()
+        num = num + 1
+        print("num=%d" %(num))
+
+    if status!="active":
+        print("create_loadbalancer timeout")
+        exit(-1)
+
     print("子线程结束")
 
 
@@ -473,7 +494,10 @@ if __name__ == "__main__":
     vxnet_id = options.vxnet_id
     eip_id = options.eip_id
     resource_id = explode_array(options.resource_id or "")
-    platform = options.platform
+    if not options.platform:
+        platform = "qingcloud"
+    else:
+        platform = options.platform
     print("zone_id:%s" % (zone_id))
     print("access_key_id:%s" % (access_key_id))
     print("secret_access_key:%s" % (secret_access_key))
