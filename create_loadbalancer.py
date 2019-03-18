@@ -29,6 +29,7 @@ eip_id = None
 platform = None
 g_loadbalancer_id = None
 g_loadbalancer_listeners_id = None
+eip_addr = None
 
 
 
@@ -57,18 +58,23 @@ def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
         print("user_id is null")
         exit(-1)
 
-def create_loadbalancer(vxnet_id):
+def create_loadbalancer(vxnet_id,eip_id):
     print("子线程启动")
     print("create_loadbalancer")
     global conn
     global g_loadbalancer_id
-
-    ret = conn.create_loadbalancer(
-        # eips=[eip_id],
-        vxnet=vxnet_id,
-        loadbalancer_name='vdi-portal-loadbalancer'
+    if not eip_id:
+        print("create_loadbalancer with vxnet_id=%s" %(vxnet_id))
+        ret = conn.create_loadbalancer(
+            vxnet=vxnet_id,
+            loadbalancer_name='vdi-portal-loadbalancer'
+        )
+    else:
+        print("create_loadbalancer with eip_id=%s" % (eip_id))
+        ret = conn.create_loadbalancer(
+            eips=[eip_id],
+            loadbalancer_name='vdi-portal-loadbalancer'
     )
-
     if ret < 0:
         print("create_loadbalancer fail")
         exit(-1)
@@ -97,6 +103,32 @@ def create_loadbalancer(vxnet_id):
 
     print("子线程结束")
 
+def get_loadbalancer_ip():
+    print("get_loadbalancer_ip")
+    global conn
+    global g_loadbalancer_id
+    ret = conn.describe_loadbalancers(loadbalancers=[g_loadbalancer_id],verbose=1)
+    if ret < 0:
+        print("describe_loadbalancers fail")
+        exit(-1)
+    # print(ret)
+    matched_loadbalancer = ret['loadbalancer_set']
+    # print("matched_loadbalancer==%s"%(matched_loadbalancer))
+
+    # print("************************************")
+
+    wanted_loadbalancer = matched_loadbalancer[0]
+    print("wanted_loadbalancer==%s" % (wanted_loadbalancer))
+
+    print("************************************")
+    vxnet = wanted_loadbalancer.get("vxnet")
+    print("vxnet=%s"  %(vxnet))
+
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    loadbalancer_ip = vxnet.get("private_ip")
+    print("loadbalancer_ip=%s" % (loadbalancer_ip))
+    return loadbalancer_ip
+
 
 
 
@@ -116,7 +148,7 @@ def get_loadbalancer_status():
     # print("************************************")
 
     wanted_loadbalancer = matched_loadbalancer[0]
-    # print("wanted_loadbalancer==%s" % (wanted_loadbalancer))
+    print("wanted_loadbalancer==%s" % (wanted_loadbalancer))
 
     # print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     status = wanted_loadbalancer.get('status')
@@ -513,30 +545,30 @@ if __name__ == "__main__":
     #连接iaas后台
     connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
 
-    #获取vxnet_id
-    if vxnet_id:
-        print("vxnet_id==%s" %(vxnet_id))
-    else:
-        vxnet_id = get_vxnet_id()
-        print("vxnet_id==%s" % (vxnet_id))
 
-    # #获取eip_id
-    # if eip_id:
-    #     print("eip_id==%s" %(eip_id))
-    # else:
-    #     eip_id = get_eip_id()
-    #     print("eip_id==%s" % (eip_id))
-    #     if not eip_id:
-    #         print("eip_id is null")
-    #         exit(-1)
-    #
-    # # 获取eip_addr
-    # eip_addr = get_eip_addr_by_eip_id(eip_id)
-    # print("eip_addr==%s" % (eip_addr))
+
+    #获取eip_id
+    if eip_id:
+        print("eip_id==%s" %(eip_id))
+        print("Loadbalancer will use eip ip")
+        # 获取eip_addr
+        eip_addr = get_eip_addr_by_eip_id(eip_id)
+        print("eip_addr==%s" % (eip_addr))
+    else:
+        print("eip_id is None")
+        print("Loadbalancer will use vxnet ip")
+        # 获取vxnet_id
+        if vxnet_id:
+            print("vxnet_id==%s" % (vxnet_id))
+        else:
+            vxnet_id = get_vxnet_id()
+            print("vxnet_id==%s" % (vxnet_id))
+
+
 
 
     #创建子线程--创建负载均衡器
-    t1 = threading.Thread(target=create_loadbalancer,args=(vxnet_id,))
+    t1 = threading.Thread(target=create_loadbalancer,args=(vxnet_id,eip_id,))
     t1.start()
     t1.join()
 
@@ -562,10 +594,17 @@ if __name__ == "__main__":
     t5.start()
     t5.join()
 
-    # #loadbalancer_eip 写入文件
-    # loadbalancer_eip_conf = "/tmp/loadbalancer_eip_conf"
-    # with open(loadbalancer_eip_conf, "w+") as f1:
-    #     f1.write("LOADBALANCER_EIP %s" %(eip_addr))
+    #check loadbalancer ip
+    if not eip_addr:
+        loadbalancer_ip = get_loadbalancer_ip()
+    else:
+        loadbalancer_ip = eip_addr
+        
+    print("loadbalancer_ip=%s" %(loadbalancer_ip))
+    #loadbalancer_ip 写入文件
+    loadbalancer_ip_conf = "/tmp/loadbalancer_ip_conf"
+    with open(loadbalancer_ip_conf, "w+") as f1:
+        f1.write("LOADBALANCER_IP %s" %(loadbalancer_ip))
 
     print("主线程结束")
 
