@@ -46,6 +46,11 @@ def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
         exit(-1)
     print("conn==%s" %(conn))
 
+    user_id=get_user_id()
+    if not user_id:
+        print("user_id is null")
+        exit(-1)
+
 def create_rdb(vxnet_id):
     print("子线程启动")
     print("create_rdb")
@@ -67,6 +72,12 @@ def create_rdb(vxnet_id):
         print("create_rdb fail")
         exit(-1)
     print("ret==%s" % (ret))
+    #check ret_code
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code!=0:
+        print("create_rdb ret_code is error")
+        exit(-1)
 
     g_rdb_id = ret.get("rdb")
     print("g_rdb_id=%s" %(g_rdb_id))
@@ -75,9 +86,15 @@ def create_rdb(vxnet_id):
         print("create rdb fail")
         exit(-1)
     status = "pending"
-    while status != "active":
+    num = 0
+    while status != "active" and num <=300:
         time.sleep(1)
         status = get_rdb_status()
+        num = num + 1
+        print("num=%d" %(num))
+    if status!="active":
+        print("create_rdb timeout")
+        exit(-1)
     print("子线程结束")
 
 
