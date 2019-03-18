@@ -47,6 +47,11 @@ def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
         exit(-1)
     print("conn==%s" %(conn))
 
+    user_id=get_user_id()
+    if not user_id:
+        print("user_id is null")
+        exit(-1)
+
 def clone_instances(resource_id):
     print("子线程启动")
     print("clone_instances")
@@ -59,7 +64,14 @@ def clone_instances(resource_id):
             print("clone_instances fail")
             exit(-1)
         print("ret==%s" % (ret))
-        # g_cloned_instance_id = ret.get("instances")
+
+        # check ret_code
+        ret_code = ret.get("ret_code")
+        print("ret_code==%s" % (ret_code))
+        if ret_code != 0:
+            print("clone_instances ret_code is error")
+            exit(-1)
+
         g_cloned_instance_id = ret['instances']
         print("g_cloned_instance_id=%s" %(g_cloned_instance_id))
 
@@ -67,9 +79,15 @@ def clone_instances(resource_id):
             print("clone instances fail")
             exit(-1)
         status = "pending"
-        while status != "running":
+        num = 0
+        while status != "running" and num <=300:
             time.sleep(1)
             status = get_instances_status()
+            num = num + 1
+            print("num=%d" %(num))
+        if status != "running":
+            print("clone_instances timeout")
+            exit(-1)
         print("子线程结束")
 
 
@@ -170,6 +188,28 @@ def get_clone_instance_ip():
     print("g_cloned_instance_ip=%s" %(g_cloned_instance_ip))
     print("子线程结束")
 
+def get_user_id():
+    print("get_user_id")
+    global conn
+    global access_key_id
+    #查看access_keys详情
+    ret = conn.describe_access_keys(access_keys=[access_key_id])
+    if ret < 0:
+        print("describe_access_keys fail")
+        exit(-1)
+    matched_access_key = ret['access_key_set']
+    print("matched_access_key==%s" % (matched_access_key))
+
+    print("************************************")
+
+    wanted_access_key = matched_access_key[0]
+    print("wanted_access_key==%s" % (wanted_access_key))
+
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    user_id = wanted_access_key.get('owner')
+    print("user_id=%s" % (user_id))
+    return user_id
+
 
 
 if __name__ == "__main__":
@@ -235,7 +275,9 @@ if __name__ == "__main__":
     t1.start()
     t1.join()
 
-
+    if not g_cloned_instance_id:
+        print("clone instances fail")
+        exit(-1)
 
     #创建子线程--获取克隆主机的私有网络IP
     t2 = threading.Thread(target=get_clone_instance_ip)
