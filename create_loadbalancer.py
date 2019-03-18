@@ -52,14 +52,15 @@ def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
         exit(-1)
     print("conn==%s" %(conn))
 
-def create_loadbalancer(eip_id):
+def create_loadbalancer(vxnet_id):
     print("子线程启动")
     print("create_loadbalancer")
     global conn
     global g_loadbalancer_id
 
     ret = conn.create_loadbalancer(
-        eips=[eip_id],
+        # eips=[eip_id],
+        vxnet=vxnet_id,
         loadbalancer_name='vdi-portal-loadbalancer'
     )
 
@@ -495,23 +496,23 @@ if __name__ == "__main__":
         vxnet_id = get_vxnet_id()
         print("vxnet_id==%s" % (vxnet_id))
 
-    #获取eip_id
-    if eip_id:
-        print("eip_id==%s" %(eip_id))
-    else:
-        eip_id = get_eip_id()
-        print("eip_id==%s" % (eip_id))
-        if not eip_id:
-            print("eip_id is null")
-            exit(-1)
-
-    # 获取eip_addr
-    eip_addr = get_eip_addr_by_eip_id(eip_id)
-    print("eip_addr==%s" % (eip_addr))
+    # #获取eip_id
+    # if eip_id:
+    #     print("eip_id==%s" %(eip_id))
+    # else:
+    #     eip_id = get_eip_id()
+    #     print("eip_id==%s" % (eip_id))
+    #     if not eip_id:
+    #         print("eip_id is null")
+    #         exit(-1)
+    #
+    # # 获取eip_addr
+    # eip_addr = get_eip_addr_by_eip_id(eip_id)
+    # print("eip_addr==%s" % (eip_addr))
 
 
     #创建子线程--创建负载均衡器
-    t1 = threading.Thread(target=create_loadbalancer,args=(eip_id,))
+    t1 = threading.Thread(target=create_loadbalancer,args=(vxnet_id,))
     t1.start()
     t1.join()
 
@@ -537,10 +538,10 @@ if __name__ == "__main__":
     t5.start()
     t5.join()
 
-    #loadbalancer_eip 写入文件
-    loadbalancer_eip_conf = "/tmp/loadbalancer_eip_conf"
-    with open(loadbalancer_eip_conf, "w+") as f1:
-        f1.write("LOADBALANCER_EIP %s" %(eip_addr))
+    # #loadbalancer_eip 写入文件
+    # loadbalancer_eip_conf = "/tmp/loadbalancer_eip_conf"
+    # with open(loadbalancer_eip_conf, "w+") as f1:
+    #     f1.write("LOADBALANCER_EIP %s" %(eip_addr))
 
     print("主线程结束")
 
