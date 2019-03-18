@@ -26,6 +26,7 @@ loadbalancer_id = None
 loadbalancer_listener_id = None
 resource_id = None
 eip_id = None
+platform = None
 g_loadbalancer_id = None
 g_loadbalancer_listeners_id = None
 
@@ -225,27 +226,49 @@ def add_loadbalancer_listeners():
     global conn
     global g_loadbalancer_id
     global g_loadbalancer_listeners_id
-    listeners=[
-        {"listener_protocol":"http",
-         "listener_port":80,
-         "backend_protocol":"http",
-         "balance_mode":"roundrobin",
-         "loadbalancer_listener_name":"http-listener"
-        },
-        {"listener_protocol": "http",
-         "listener_port": 9520,
-         "backend_protocol": "http",
-         "balance_mode": "roundrobin",
-         "loadbalancer_listener_name": "websocket"
-         },
-        {"listener_protocol": "http",
-         "listener_port": 10080,
-         "backend_protocol": "http",
-         "balance_mode": "roundrobin",
-         "loadbalancer_listener_name": "citrix"
-         }
-    ]
+    global platform
+    print("platform==%s" % (platform))
+    if platform == "citrix":
+        listeners=[
+            {"listener_protocol":"http",
+             "listener_port":80,
+             "backend_protocol":"http",
+             "balance_mode":"roundrobin",
+             "loadbalancer_listener_name":"http-listener"
+            },
+            {"listener_protocol": "http",
+             "listener_port": 9520,
+             "backend_protocol": "http",
+             "balance_mode": "roundrobin",
+             "loadbalancer_listener_name": "websocket"
+             },
+            {"listener_protocol": "http",
+             "listener_port": 10080,
+             "backend_protocol": "http",
+             "balance_mode": "roundrobin",
+             "loadbalancer_listener_name": "citrix"
+             }
+        ]
+    elif platform == "qingcloud":
+        listeners = [
+            {"listener_protocol": "http",
+             "listener_port": 80,
+             "backend_protocol": "http",
+             "balance_mode": "roundrobin",
+             "loadbalancer_listener_name": "http-listener"
+             },
+            {"listener_protocol": "http",
+             "listener_port": 9520,
+             "backend_protocol": "http",
+             "balance_mode": "roundrobin",
+             "loadbalancer_listener_name": "websocket"
+             }
+        ]
+    else:
+        print("invalid platform")
 
+
+    print("listeners==%s" % (listeners))
     ret = conn.add_listeners_to_loadbalancer(
         loadbalancer=g_loadbalancer_id,
         listeners=listeners
@@ -340,7 +363,7 @@ def add_backends_to_listener(resource_id):
                     {"resource_id":res_id,
                      "port":80,
                      "weight":"1",
-                     "loadbalancer_backend_name":"backend_desktop_server_01"
+                     "loadbalancer_backend_name":"backend_desktop_server"
                     }
                 ]
                 print("backends=%s" % (backends))
@@ -358,7 +381,7 @@ def add_backends_to_listener(resource_id):
                     {"resource_id":res_id,
                      "port":9520,
                      "weight":"1",
-                     "loadbalancer_backend_name":"backend_desktop_server_01"
+                     "loadbalancer_backend_name":"backend_desktop_server"
                     }
                 ]
                 print("backends=%s" % (backends))
@@ -375,7 +398,7 @@ def add_backends_to_listener(resource_id):
                     {"resource_id":res_id,
                      "port":10080,
                      "weight":"1",
-                     "loadbalancer_backend_name":"backend_desktop_server_01"
+                     "loadbalancer_backend_name":"backend_desktop_server"
                     }
                 ]
                 print("backends=%s" % (backends))
@@ -434,6 +457,8 @@ if __name__ == "__main__":
                           dest="eip_id", help='eip id', default="")
     opt_parser.add_option("-r", "--resource_id", action="store", type="string", \
                           dest="resource_id", help='resource id', default="")
+    opt_parser.add_option("-F", "--platform", action="store", type="string", \
+                          dest="platform", help='platform', default="")
 
 
 
@@ -447,6 +472,7 @@ if __name__ == "__main__":
     vxnet_id = options.vxnet_id
     eip_id = options.eip_id
     resource_id = explode_array(options.resource_id or "")
+    platform = options.platform
     print("zone_id:%s" % (zone_id))
     print("access_key_id:%s" % (access_key_id))
     print("secret_access_key:%s" % (secret_access_key))
@@ -456,7 +482,7 @@ if __name__ == "__main__":
     print("vxnet_id:%s" % (vxnet_id))
     print("eip_id:%s" % (eip_id))
     print("resource_id:%s" % (resource_id))
-
+    print("platform:%s" % (platform))
 
 
     #连接iaas后台
