@@ -45,6 +45,11 @@ def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
         exit(-1)
     print("conn==%s" %(conn))
 
+    user_id=get_user_id()
+    if not user_id:
+        print("user_id is null")
+        exit(-1)
+
 def create_cache(vxnet_id):
     print("子线程启动")
     print("create_cache")
@@ -63,6 +68,13 @@ def create_cache(vxnet_id):
         exit(-1)
     print("ret==%s" % (ret))
 
+    #check ret_code
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code!=0:
+        print("create_cache ret_code is error")
+        exit(-1)
+
     g_cache_id = ret.get("cache_id")
     print("g_cache_id=%s" % (g_cache_id))
 
@@ -70,9 +82,16 @@ def create_cache(vxnet_id):
         print("create cache fail")
         exit(-1)
     status = "pending"
-    while status != "active":
+    num = 0
+    while status != "active" and num <= 300:
         time.sleep(1)
         status = get_cache_status()
+        num = num + 1
+        print("num=%d" %(num))
+
+    if status!="active":
+        print("create_cache timeout")
+        exit(-1)
     print("子线程结束")
 
 
@@ -148,6 +167,28 @@ def get_vxnet_id():
     vxnet_id = wanted_vxnet.get('vxnet_id')
     print("vxnet_id=%s" % (vxnet_id))
     return vxnet_id
+
+def get_user_id():
+    print("get_user_id")
+    global conn
+    global access_key_id
+    #查看access_keys详情
+    ret = conn.describe_access_keys(access_keys=[access_key_id])
+    if ret < 0:
+        print("describe_access_keys fail")
+        exit(-1)
+    matched_access_key = ret['access_key_set']
+    print("matched_access_key==%s" % (matched_access_key))
+
+    print("************************************")
+
+    wanted_access_key = matched_access_key[0]
+    print("wanted_access_key==%s" % (wanted_access_key))
+
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    user_id = wanted_access_key.get('owner')
+    print("user_id=%s" % (user_id))
+    return user_id
 
 
 if __name__ == "__main__":
