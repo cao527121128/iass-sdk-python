@@ -2138,3 +2138,63 @@ class APIConnection(HttpConnection):
             return None
 
         return self.send_request(action, body)
+
+    def describe_quotas(self, owner=None,
+                        verbose=0,
+                        search_word=None,
+                        offset=None,
+                        limit=None,
+                        tags=None,
+                        **ignore):
+        """ Describe quotas filtered by condition.
+        @param owner: an user ID you want to list quotas.
+        @param verbose: the number to specify the verbose level,
+                        larger the number, the more detailed information will be returned.
+        @param search_word: the search word.
+        @param offset: the starting offset of the returning results.
+        @param limit: specify the number of the returning results.
+        @param tags : the array of IDs of tags.
+        """
+        action = const.ACTION_DESCRIBE_QUOTAS
+        valid_keys = ['owner']
+        body = filter_out_none(locals(), valid_keys)
+        if not self.req_checker.check_params(body,
+                                             required_params=["owner"],
+                                             integer_params=[
+                                                 "offset", "limit", "verbose"],
+                                             list_params=[]
+                                             ):
+            return None
+
+        return self.send_request(action, body)
+
+    def get_quota_left(self, resource_types,
+                       owner=None,
+                       verbose=0,
+                       search_word=None,
+                       offset=None,
+                       limit=None,
+                       tags=None,
+                       **ignore):
+        """ get quota left filtered by condition.
+        @resource_types:resource types array ID
+        @param owner: an user ID you want to list quotas.
+        @param verbose: the number to specify the verbose level,
+                        larger the number, the more detailed information will be returned.
+        @param search_word: the search word.
+        @param offset: the starting offset of the returning results.
+        @param limit: specify the number of the returning results.
+        @param tags : the array of IDs of tags.
+        """
+        action = const.ACTION_GET_QUOTA_LEFT
+        valid_keys = ['resource_types','owner']
+        body = filter_out_none(locals(), valid_keys)
+        if not self.req_checker.check_params(body,
+                                             required_params=["resource_types","owner"],
+                                             integer_params=[
+                                                 "offset", "limit", "verbose"],
+                                             list_params=["resource_types"]
+                                             ):
+            return None
+
+        return self.send_request(action, body)

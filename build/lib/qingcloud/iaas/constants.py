@@ -377,3 +377,7 @@ ACTION_DESCRIBE_CLUSTERS = "DescribeClusters"
 ACTION_ADD_CLUSTER_NODES = "AddClusterNodes"
 ACTION_DELETE_CLUSTER_NODES = "DeleteClusterNodes"
 ACTION_DELETE_CLUSTERS = "DeleteClusters"
+
+# quotas
+ACTION_DESCRIBE_QUOTAS = "DescribeQuotas"
+ACTION_GET_QUOTA_LEFT = "GetQuotaLeft"
