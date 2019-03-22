@@ -264,12 +264,12 @@ if __name__ == "__main__":
     #连接iaas后台
     connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
 
-    #获取vxnet_id
-    if vxnet_id:
-        print("vxnet_id==%s" %(vxnet_id))
-    else:
-        vxnet_id = get_vxnet_id()
-        print("vxnet_id==%s" % (vxnet_id))
+    # #获取vxnet_id
+    # if vxnet_id:
+    #     print("vxnet_id==%s" %(vxnet_id))
+    # else:
+    #     vxnet_id = get_vxnet_id()
+    #     print("vxnet_id==%s" % (vxnet_id))
 
     #创建子线程执行创建数据库的操作
     t = threading.Thread(target=create_rdb,args=(vxnet_id,))
