@@ -141,13 +141,16 @@ if __name__ == "__main__":
         exit(-1)
 
     rdb_quota_left = get_user_quota_left('rdb',user_id)
-    print("rdb_quota_left=%s" %(rdb_quota_left))
+    print("rdb_quota_left=%d" %(rdb_quota_left))
 
     cache_quota_left = get_user_quota_left('cache', user_id)
-    print("cache_quota_left=%s" % (cache_quota_left))
+    print("cache_quota_left=%d" % (cache_quota_left))
+
+    instance_quota_left = get_user_quota_left('instance', user_id)
+    print("instance_quota_left=%d" % (instance_quota_left))
 
     loadbalancer_quota_left = get_user_quota_left('loadbalancer', user_id)
-    print("loadbalancer_quota_left=%s" % (loadbalancer_quota_left))
+    print("loadbalancer_quota_left=%d" % (loadbalancer_quota_left))
 
     # rdb_quota_left 写入文件
     rdb_quota_left_conf = "/tmp/rdb_quota_left_conf"
@@ -158,6 +161,11 @@ if __name__ == "__main__":
     cache_quota_left_conf = "/tmp/cache_quota_left_conf"
     with open(cache_quota_left_conf, "w+") as f1:
         f1.write("CACHE_QUOTA_LEFT %d" % (cache_quota_left))
+
+    # instance_quota_left 写入文件
+    instance_quota_left_conf = "/tmp/instance_quota_left_conf"
+    with open(instance_quota_left_conf, "w+") as f1:
+        f1.write("INSTANCE_QUOTA_LEFT %d" % (instance_quota_left))
 
     # loadbalancer_quota_left 写入文件
     loadbalancer_quota_left_conf = "/tmp/loadbalancer_quota_left_conf"
