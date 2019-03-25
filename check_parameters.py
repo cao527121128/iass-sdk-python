@@ -25,6 +25,7 @@ secret_access_key_flag = True
 access_key_id_flag = True
 host_flag = True
 user_id = None
+zone_id_flag = True
 
 
 
@@ -115,6 +116,27 @@ def get_user_id():
 
         return user_id
 
+def check_zone_id_parameter(resource_type,user_id):
+    print("check_zone_id_parameter")
+    global conn
+    global zone_id_flag
+
+    #调用用户配额剩余 以检查zone_id是否正确
+    ret = conn.get_quota_left(resource_types=[resource_type], owner=user_id)
+    print("ret=%s" %(ret))
+    if ret.get("ret_code") == 1400:
+        message = ret.get("message")
+        test_message = 'PermissionDenied, access denied for zone'
+        result = test_message in message
+        print("result=%s" %(result))
+        if result == True:
+            zone_id_flag = False
+
+    # zone_id_flag 写入文件
+    zone_id_flag_conf = "/tmp/zone_id_flag_conf"
+    with open(zone_id_flag_conf, "w+") as f1:
+        f1.write("ZONE_ID_FLAG %s" % (zone_id_flag))
+
 
 if __name__ == "__main__":
     print("主线程启动")
@@ -168,6 +190,9 @@ if __name__ == "__main__":
     with open(user_id_conf, "w+") as f1:
         f1.write("USER_ID %s" % (user_id))
 
+    if user_id:
+        #check zone parameter if correct
+        check_zone_id_parameter('rdb',user_id)
 
     print("主线程结束")
 
