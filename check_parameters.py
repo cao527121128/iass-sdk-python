@@ -133,8 +133,8 @@ def check_zone_id_parameter(resource_type,user_id):
             zone_id_flag = False
 
     # zone_id_flag 写入文件
-    zone_id_flag_conf = "/tmp/zone_id_flag_conf"
-    with open(zone_id_flag_conf, "w+") as f1:
+    zone_id_conf = "/tmp/zone_id_conf"
+    with open(zone_id_conf, "w+") as f1:
         f1.write("ZONE_ID_FLAG %s" % (zone_id_flag))
 
 
