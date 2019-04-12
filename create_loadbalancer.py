@@ -288,19 +288,25 @@ def add_loadbalancer_listeners():
              "listener_port":80,
              "backend_protocol":"http",
              "balance_mode":"roundrobin",
-             "loadbalancer_listener_name":"http-listener"
+             "loadbalancer_listener_name":"http-listener",
+             "session_sticky":"insert|1200",
+             "forwardfor":1
             },
             {"listener_protocol": "http",
              "listener_port": 9520,
              "backend_protocol": "http",
              "balance_mode": "roundrobin",
-             "loadbalancer_listener_name": "websocket"
+             "loadbalancer_listener_name": "websocket",
+             "session_sticky": "insert|1200",
+             "forwardfor": 1
              },
             {"listener_protocol": "http",
              "listener_port": 10080,
              "backend_protocol": "http",
              "balance_mode": "roundrobin",
-             "loadbalancer_listener_name": "citrix"
+             "loadbalancer_listener_name": "citrix",
+             "session_sticky": "insert|1200",
+             "forwardfor": 1
              }
         ]
     elif platform == "qingcloud":
@@ -309,13 +315,17 @@ def add_loadbalancer_listeners():
              "listener_port": 80,
              "backend_protocol": "http",
              "balance_mode": "roundrobin",
-             "loadbalancer_listener_name": "http-listener"
+             "loadbalancer_listener_name": "http-listener",
+             "session_sticky": "insert|1200",
+             "forwardfor": 1
              },
             {"listener_protocol": "http",
              "listener_port": 9520,
              "backend_protocol": "http",
              "balance_mode": "roundrobin",
-             "loadbalancer_listener_name": "websocket"
+             "loadbalancer_listener_name": "websocket",
+             "session_sticky": "insert|1200",
+             "forwardfor": 1
              }
         ]
     else:
