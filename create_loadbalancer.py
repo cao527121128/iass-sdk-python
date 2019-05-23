@@ -466,14 +466,14 @@ def add_backends_to_listener(resource_id):
                     }
                 ]
                 print("backends=%s" % (backends))
-                ret = conn.add_backends_to_listener(
-                                loadbalancer_listener=loadbalancer_listener_id,
-                                backends=backends
-                            )
-                if ret < 0:
-                    print("add_backends_to_listener fail")
-                    exit(-1)
-                print("ret==%s" % (ret))
+                # ret = conn.add_backends_to_listener(
+                #                 loadbalancer_listener=loadbalancer_listener_id,
+                #                 backends=backends
+                #             )
+                # if ret < 0:
+                #     print("add_backends_to_listener fail")
+                #     exit(-1)
+                # print("ret==%s" % (ret))
             else:
                 print("invalid listener_port")
                 exit(-1)
