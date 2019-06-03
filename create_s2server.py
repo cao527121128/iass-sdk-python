@@ -23,6 +23,7 @@ port = None
 protocol = None
 vxnet_id = None
 g_s2_server_id = None
+g_s2_shared_target_id = None
 
 
 
@@ -121,6 +122,30 @@ def get_s2_server_status():
     return status
 
 
+def get_s2_servers_transition_status():
+    print("get_s2_servers_transition_status")
+    global conn
+    global g_s2_server_id
+    global g_s2_shared_target_id
+
+    ret = conn.describe_s2_servers(s2_servers=[g_s2_server_id])
+    if ret < 0:
+        print("describe_s2_servers fail")
+        exit(-1)
+
+    matched_s2_server = ret['s2_server_set']
+    print("matched_s2_server==%s"%(matched_s2_server))
+
+    print("************************************")
+
+    wanted_s2_server = matched_s2_server[0]
+    print("wanted_s2_server==%s" % (wanted_s2_server))
+
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    transition_status = wanted_s2_server.get('transition_status')
+    print("transition_status==%s" % (transition_status))
+    return transition_status
+
 
 def get_s2_server_ip():
     print("get_s2_server_ip")
@@ -187,6 +212,50 @@ def get_user_id():
     return user_id
 
 
+def create_s2_shared_target():
+    print("子线程启动")
+    print("create_s2_shared_target")
+    global conn
+    global g_s2_server_id
+    global g_s2_shared_target_id
+    ret = conn.create_s2_shared_target(
+        s2_server_id=g_s2_server_id,
+        export_name='/mnt/nas',
+        target_type='NFS',
+        description='create s2 shared target'
+    )
+    if ret < 0:
+        print("create_s2_shared_target fail")
+        exit(-1)
+    print("ret==%s" % (ret))
+    g_s2_shared_target_id = ret.get("s2_shared_target")
+    print("g_s2_shared_target_id==%s" % (g_s2_shared_target_id))
+    print("子线程结束")
+
+
+def update_s2_servers():
+    print("子线程启动")
+    print("update_s2_servers")
+    global conn
+    global g_s2_server_id
+    global g_s2_shared_target_id
+
+    ret = conn.update_s2_servers(s2_servers=[g_s2_server_id])
+    if ret < 0:
+        print("update_s2_servers fail")
+        exit(-1)
+    print("ret==%s" % (ret))
+    time.sleep(1)
+
+    transition_status = "updating"
+    while transition_status !="":
+        time.sleep(1)
+        transition_status = get_s2_servers_transition_status()
+
+    print("子线程结束")
+
+
+
 if __name__ == "__main__":
     print("主线程启动")
 
@@ -233,11 +302,20 @@ if __name__ == "__main__":
     connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
 
 
-    #创建子线程执行创建数据库的操作
+    #创建子线程--创建共享存储服务器
     t = threading.Thread(target=create_s2server,args=(vxnet_id,))
     t.start()
     t.join()
 
+    #创建子线程--新建共享存储目标
+    t2 = threading.Thread(target=create_s2_shared_target)
+    t2.start()
+    t2.join()
+
+    #创建子线程--更新共享存储服务器的配置信息
+    t3 = threading.Thread(target=update_s2_servers)
+    t3.start()
+    t3.join()
 
     #s2server 写入文件
     s2server_ip_conf = "/tmp/s2server_ip_conf"
