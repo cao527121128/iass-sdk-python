@@ -26,6 +26,8 @@ g_s2_server_id = None
 g_s2_shared_target_id = None
 g_vdi0_ip = None
 g_vdi1_ip = None
+g_s2_account_id_vdi0_host = None
+g_s2_account_id_vdi1_host = None
 
 
 
@@ -239,6 +241,32 @@ def get_volume_id():
     return volume_id
 
 
+def get_s2_groups_id():
+    print("get_s2_groups_id")
+    global conn
+
+    ret = conn.describe_s2_groups(group_types=['NFS_GROUP'], limit=1)
+    if ret < 0:
+        print("describe_s2_groups fail")
+        exit(-1)
+    matched_s2_groups = ret['s2_group_set']
+    if  not matched_s2_groups:
+        print("matched_s2_groups is null")
+        exit(-1)
+
+    print("matched_s2_groups == %s" % (matched_s2_groups))
+    print("************************************")
+
+    wanted_s2_groups = matched_s2_groups[0]
+    print("wanted_s2_groups == %s" % (wanted_s2_groups))
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+
+    s2_groups_id = wanted_s2_groups.get('group_id')
+    print("s2_groups_id == %s" % (s2_groups_id))
+    return s2_groups_id
+
+
+
 def create_s2_shared_target():
     print("子线程启动")
     print("create_s2_shared_target")
@@ -299,6 +327,8 @@ def create_s2_account_vdi0_host():
     global g_s2_shared_target_id
     global g_vdi0_ip
     global g_vdi1_ip
+    global g_s2_account_id_vdi0_host
+    global g_s2_account_id_vdi1_host
 
     ret = conn.create_s2_account(
         account_type='NFS',
@@ -310,6 +340,8 @@ def create_s2_account_vdi0_host():
         print("create_s2_account for vdi0 fail")
         exit(-1)
     print("ret==%s" % (ret))
+    g_s2_account_id_vdi0_host = ret.get('s2_account_id')
+    print("g_s2_account_id_vdi0_host == %s" %(g_s2_account_id_vdi0_host))
     print("子线程结束")
 
 def create_s2_account_vdi1_host():
@@ -320,6 +352,8 @@ def create_s2_account_vdi1_host():
     global g_s2_shared_target_id
     global g_vdi0_ip
     global g_vdi1_ip
+    global g_s2_account_id_vdi0_host
+    global g_s2_account_id_vdi1_host
 
     ret = conn.create_s2_account(
         account_type='NFS',
@@ -329,6 +363,71 @@ def create_s2_account_vdi1_host():
     )
     if ret < 0:
         print("create_s2_account for vdi1 fail")
+        exit(-1)
+    print("ret==%s" % (ret))
+    g_s2_account_id_vdi1_host = ret.get('s2_account_id')
+    print("g_s2_account_id_vdi1_host == %s" %(g_s2_account_id_vdi1_host))
+    print("子线程结束")
+
+def associate_s2_account_group_vdi0_host():
+    print("子线程启动")
+    print("associate_s2_account_group_vdi0_host")
+    global conn
+    global g_s2_server_id
+    global g_s2_shared_target_id
+    global g_s2_account_id_vdi0_host
+    global g_s2_account_id_vdi1_host
+
+    #get availlable s2_groups_id
+    s2_groups_id = get_s2_groups_id()
+    if not s2_groups_id:
+        print("can't get available s2_groups_id")
+        exit(-1)
+    print("get available s2_groups_id == %s" %(s2_groups_id))
+
+    #get s2_accounts_list
+    # s2_accounts: the JSON form of accounts. e.g. '[{"account_id": "s2a-xxxx", "rw_flag": "rw"}]'
+    s2_accounts_list = {"account_id": g_s2_account_id_vdi0_host,"rw_flag": "rw"}
+
+    #start associate_s2_account_group
+    ret = conn.associate_s2_account_group(
+        s2_group=s2_groups_id,
+        s2_accounts=[s2_accounts_list]
+    )
+    if ret < 0:
+        print("associate_s2_account_group for vdi0 fail")
+        exit(-1)
+    print("ret==%s" % (ret))
+    print("子线程结束")
+
+
+def associate_s2_account_group_vdi1_host():
+    print("子线程启动")
+    print("associate_s2_account_group_vdi1_host")
+    global conn
+    global g_s2_server_id
+    global g_s2_shared_target_id
+    global g_s2_account_id_vdi0_host
+    global g_s2_account_id_vdi1_host
+
+    #get availlable s2_groups_id
+    s2_groups_id = get_s2_groups_id()
+    if not s2_groups_id:
+        print("can't get available s2_groups_id")
+        exit(-1)
+    print("get available s2_groups_id == %s" %(s2_groups_id))
+
+    #get s2_accounts_list
+    # s2_accounts: the JSON form of accounts. e.g. '[{"account_id": "s2a-xxxx", "rw_flag": "rw"}]'
+    s2_accounts_list = {"account_id": g_s2_account_id_vdi1_host,"rw_flag": "rw"}
+
+    #start associate_s2_account_group
+    ret = conn.associate_s2_account_group(
+        s2_group=s2_groups_id,
+        s2_accounts=[s2_accounts_list]
+    )
+    if ret < 0:
+        print("associate_s2_account_group for vdi1 fail")
         exit(-1)
     print("ret==%s" % (ret))
     print("子线程结束")
@@ -430,6 +529,22 @@ if __name__ == "__main__":
     t7 = threading.Thread(target=update_s2_servers)
     t7.start()
     t7.join()
+
+    #创建子线程--将访问NFS资源的用户账户和权限组进行关联，用户加入资源组之后，就可以访问共享目录的资源 vdi0客户端
+    t8 = threading.Thread(target=associate_s2_account_group_vdi0_host)
+    t8.start()
+    t8.join()
+
+
+    #创建子线程--将访问NFS资源的用户账户和权限组进行关联，用户加入资源组之后，就可以访问共享目录的资源 vdi1客户端
+    t9 = threading.Thread(target=associate_s2_account_group_vdi1_host)
+    t9.start()
+    t9.join()
+
+    #创建子线程--更新共享存储服务器的配置信息
+    t10 = threading.Thread(target=update_s2_servers)
+    t10.start()
+    t10.join()
 
     #s2server 写入文件
     s2server_ip_conf = "/tmp/s2server_ip_conf"
