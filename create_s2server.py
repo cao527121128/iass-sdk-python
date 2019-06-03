@@ -24,6 +24,9 @@ protocol = None
 vxnet_id = None
 g_s2_server_id = None
 g_s2_shared_target_id = None
+g_vdi0_ip = None
+g_vdi1_ip = None
+
 
 
 
@@ -288,6 +291,50 @@ def update_s2_servers():
     print("子线程结束")
 
 
+def create_s2_account_vdi0_host():
+    print("子线程启动")
+    print("create_s2_account_vdi0_host")
+    global conn
+    global g_s2_server_id
+    global g_s2_shared_target_id
+    global g_vdi0_ip
+    global g_vdi1_ip
+
+    ret = conn.create_s2_account(
+        account_type='NFS',
+        account_name='vdi0-portal-account',
+        nfs_ipaddr= g_vdi0_ip,
+        description='create s2 account for vdi0'
+    )
+    if ret < 0:
+        print("create_s2_account for vdi0 fail")
+        exit(-1)
+    print("ret==%s" % (ret))
+    print("子线程结束")
+
+def create_s2_account_vdi1_host():
+    print("子线程启动")
+    print("create_s2_account_vdi1_host")
+    global conn
+    global g_s2_server_id
+    global g_s2_shared_target_id
+    global g_vdi0_ip
+    global g_vdi1_ip
+
+    ret = conn.create_s2_account(
+        account_type='NFS',
+        account_name='vdi1-portal-account',
+        nfs_ipaddr= g_vdi1_ip,
+        description='create s2 account for vdi1'
+    )
+    if ret < 0:
+        print("create_s2_account for vdi1 fail")
+        exit(-1)
+    print("ret==%s" % (ret))
+    print("子线程结束")
+
+
+
 
 if __name__ == "__main__":
     print("主线程启动")
@@ -313,6 +360,12 @@ if __name__ == "__main__":
     opt_parser.add_option("-v", "--vxnet_id", action="store", type="string", \
                           dest="vxnet_id", help='vxnet id', default="")
 
+    opt_parser.add_option("-i", "--vdi0_ip", action="store", type="string", \
+                          dest="vdi0_ip", help='vdi0 ip', default="")
+
+    opt_parser.add_option("-m", "--vdi1_ip", action="store", type="string", \
+                          dest="vdi1_ip", help='vdi1 ip', default="")
+
     (options, _) = opt_parser.parse_args(sys.argv)
 
     zone_id = options.zone_id
@@ -322,6 +375,12 @@ if __name__ == "__main__":
     port = options.port
     protocol = options.protocol
     vxnet_id = options.vxnet_id
+    g_vdi0_ip = options.vdi0_ip
+    g_vdi1_ip = options.vdi1_ip
+
+    #test
+    #g_vdi0_ip = "10.11.11.86"
+    #g_vdi1_ip = "10.11.11.90"
     print("zone_id:%s" % (zone_id))
     print("access_key_id:%s" % (access_key_id))
     print("secret_access_key:%s" % (secret_access_key))
@@ -329,6 +388,8 @@ if __name__ == "__main__":
     print("port:%s" % (port))
     print("protocol:%s" % (protocol))
     print("vxnet_id:%s" % (vxnet_id))
+    print("g_vdi0_ip:%s" % (g_vdi0_ip))
+    print("g_vdi1_ip:%s" % (g_vdi1_ip))
 
 
     #连接iaas后台
@@ -349,6 +410,26 @@ if __name__ == "__main__":
     t3 = threading.Thread(target=update_s2_servers)
     t3.start()
     t3.join()
+
+    #创建子线程--创建vnas服务访问资源账号 vdi0客户端
+    t4 = threading.Thread(target=create_s2_account_vdi0_host)
+    t4.start()
+    t4.join()
+
+    #创建子线程--更新共享存储服务器的配置信息
+    t5 = threading.Thread(target=update_s2_servers)
+    t5.start()
+    t5.join()
+
+    #创建子线程--创建vnas服务访问资源账号 vdi1客户端
+    t6 = threading.Thread(target=create_s2_account_vdi1_host)
+    t6.start()
+    t6.join()
+
+    #创建子线程--更新共享存储服务器的配置信息
+    t7 = threading.Thread(target=update_s2_servers)
+    t7.start()
+    t7.join()
 
     #s2server 写入文件
     s2server_ip_conf = "/tmp/s2server_ip_conf"
