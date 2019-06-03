@@ -211,6 +211,30 @@ def get_user_id():
     print("user_id=%s" % (user_id))
     return user_id
 
+def get_volume_id():
+    print("get_volume_id")
+    global conn
+
+    ret = conn.describe_volumes(volume_type=0, status=['available'], limit=1)
+    if ret < 0:
+        print("describe_volumes fail")
+        exit(-1)
+    matched_volume = ret['volume_set']
+    if  not matched_volume:
+        print("matched_volume is null")
+        exit(-1)
+
+    print("matched_volume == %s" % (matched_volume))
+    print("************************************")
+
+    wanted_volume = matched_volume[0]
+    print("wanted_volume == %s" % (wanted_volume))
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+
+    volume_id = wanted_volume.get('volume_id')
+    print("volume_id == %s" % (volume_id))
+    return volume_id
+
 
 def create_s2_shared_target():
     print("子线程启动")
@@ -218,8 +242,17 @@ def create_s2_shared_target():
     global conn
     global g_s2_server_id
     global g_s2_shared_target_id
+
+    #get availlable volume 10G
+    volume_id = get_volume_id()
+    if not volume_id:
+        print("can't get available volume")
+        exit(-1)
+    print("get available volume volume_id == %s" %(volume_id))
+
     ret = conn.create_s2_shared_target(
         s2_server_id=g_s2_server_id,
+        volumes=[volume_id],
         export_name='/mnt/nas',
         target_type='NFS',
         description='create s2 shared target'
