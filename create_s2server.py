@@ -318,7 +318,7 @@ def create_s2_shared_target():
 
     #get availlable volume 10G
     user_id = get_user_id()
-    #volume_id = get_volume_id(user_id)
+    volume_id = get_volume_id(user_id)
     if not volume_id:
         print("can't get available volume")
         print("it will start create_volumes")
