@@ -323,6 +323,76 @@ def create_s2_shared_target():
     print("子线程结束")
 
 
+
+def describe_s2_account_vdi0_host():
+    print("子线程启动")
+    print("describe_s2_account_vdi0_host")
+    global conn
+    global g_s2_server_id
+    global g_s2_shared_target_id
+    global g_vdi0_ip
+    global g_vdi1_ip
+    global g_s2_account_id_vdi0_host
+    global g_s2_account_id_vdi1_host
+
+
+    ret = conn.describe_s2_accounts(search_word= g_vdi0_ip,verbose=1)
+    print("ret==%s" % (ret))
+    if ret.get('ret_code') == 0:
+        if ret.get('total_count') == 1:
+            print("account ipaddr[%s] already existed" %(g_vdi0_ip))
+            # g_s2_account_id_vdi0_host = ret.get('s2_account_id')
+            matched_s2_account_set = ret['s2_account_set']
+            if not matched_s2_account_set:
+                print("matched_s2_account_set is null")
+                exit(-1)
+
+            print("matched_s2_account_set == %s" % (matched_s2_account_set))
+            print("************************************")
+
+            wanted_s2_account_set = matched_s2_account_set[0]
+            print("wanted_s2_account_set == %s" % (wanted_s2_account_set))
+            print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+            g_s2_account_id_vdi0_host = wanted_s2_account_set.get('account_id')
+            print("g_s2_account_id_vdi0_host == %s" %(g_s2_account_id_vdi0_host))
+    return g_s2_account_id_vdi0_host
+    print("子线程结束")
+
+def describe_s2_account_vdi1_host():
+    print("子线程启动")
+    print("describe_s2_account_vdi1_host")
+    global conn
+    global g_s2_server_id
+    global g_s2_shared_target_id
+    global g_vdi0_ip
+    global g_vdi1_ip
+    global g_s2_account_id_vdi0_host
+    global g_s2_account_id_vdi1_host
+
+
+    ret = conn.describe_s2_accounts(search_word= g_vdi1_ip,verbose=1)
+    print("ret==%s" % (ret))
+    if ret.get('ret_code') == 0:
+        if ret.get('total_count') == 1:
+            print("account ipaddr[%s] already existed" %(g_vdi0_ip))
+            # g_s2_account_id_vdi0_host = ret.get('s2_account_id')
+            matched_s2_account_set = ret['s2_account_set']
+            if not matched_s2_account_set:
+                print("matched_s2_account_set is null")
+                exit(-1)
+
+            print("matched_s2_account_set == %s" % (matched_s2_account_set))
+            print("************************************")
+
+            wanted_s2_account_set = matched_s2_account_set[0]
+            print("wanted_s2_account_set == %s" % (wanted_s2_account_set))
+            print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+            g_s2_account_id_vdi1_host = wanted_s2_account_set.get('account_id')
+            print("g_s2_account_id_vdi1_host == %s" %(g_s2_account_id_vdi1_host))
+    return g_s2_account_id_vdi1_host
+    print("子线程结束")
+
+
 def update_s2_servers():
     print("子线程启动")
     print("update_s2_servers")
@@ -356,19 +426,16 @@ def create_s2_account_vdi0_host():
     global g_s2_account_id_vdi0_host
     global g_s2_account_id_vdi1_host
 
-    ret = conn.create_s2_account(
-        account_type='NFS',
-        account_name='vdi0-portal-account',
-        nfs_ipaddr= g_vdi0_ip,
-        description='create s2 account for vdi0'
-    )
-    if ret < 0:
-        print("create_s2_account for vdi0 fail")
-        exit(-1)
-    print("ret==%s" % (ret))
-    g_s2_account_id_vdi0_host = ret.get('s2_account_id')
+    g_s2_account_id_vdi0_host = describe_s2_account_vdi0_host()
+    if not g_s2_account_id_vdi0_host:
+        ret = conn.create_s2_account(account_type='NFS',account_name='vdi0-portal-account',nfs_ipaddr= g_vdi0_ip,description='create s2 account for vdi0')
+        print("ret==%s" % (ret))
+        g_s2_account_id_vdi0_host = ret.get('s2_account_id')
+
     print("g_s2_account_id_vdi0_host == %s" %(g_s2_account_id_vdi0_host))
     print("子线程结束")
+
+
 
 def create_s2_account_vdi1_host():
     print("子线程启动")
@@ -381,17 +448,12 @@ def create_s2_account_vdi1_host():
     global g_s2_account_id_vdi0_host
     global g_s2_account_id_vdi1_host
 
-    ret = conn.create_s2_account(
-        account_type='NFS',
-        account_name='vdi1-portal-account',
-        nfs_ipaddr= g_vdi1_ip,
-        description='create s2 account for vdi1'
-    )
-    if ret < 0:
-        print("create_s2_account for vdi1 fail")
-        exit(-1)
-    print("ret==%s" % (ret))
-    g_s2_account_id_vdi1_host = ret.get('s2_account_id')
+    g_s2_account_id_vdi1_host = describe_s2_account_vdi1_host()
+    if not g_s2_account_id_vdi1_host:
+        ret = conn.create_s2_account(account_type='NFS',account_name='vdi0-portal-account',nfs_ipaddr= g_vdi1_ip,description='create s2 account for vdi1')
+        print("ret==%s" % (ret))
+        g_s2_account_id_vdi1_host = ret.get('s2_account_id')
+
     print("g_s2_account_id_vdi1_host == %s" %(g_s2_account_id_vdi1_host))
     print("子线程结束")
 
@@ -531,46 +593,34 @@ if __name__ == "__main__":
     t2.start()
     t2.join()
 
-    # #创建子线程--更新共享存储服务器的配置信息
-    # t3 = threading.Thread(target=update_s2_servers)
-    # t3.start()
-    # t3.join()
 
     #创建子线程--创建vnas服务访问资源账号 vdi0客户端
-    t4 = threading.Thread(target=create_s2_account_vdi0_host)
+    t3 = threading.Thread(target=create_s2_account_vdi0_host)
+    t3.start()
+    t3.join()
+
+
+    #创建子线程--创建vnas服务访问资源账号 vdi1客户端
+    t4 = threading.Thread(target=create_s2_account_vdi1_host)
     t4.start()
     t4.join()
 
-    # #创建子线程--更新共享存储服务器的配置信息
-    # t5 = threading.Thread(target=update_s2_servers)
-    # t5.start()
-    # t5.join()
-
-    #创建子线程--创建vnas服务访问资源账号 vdi1客户端
-    t6 = threading.Thread(target=create_s2_account_vdi1_host)
-    t6.start()
-    t6.join()
-
-    # #创建子线程--更新共享存储服务器的配置信息
-    # t7 = threading.Thread(target=update_s2_servers)
-    # t7.start()
-    # t7.join()
 
     #创建子线程--将访问NFS资源的用户账户和权限组进行关联，用户加入资源组之后，就可以访问共享目录的资源 vdi0客户端
-    t8 = threading.Thread(target=associate_s2_account_group_vdi0_host)
-    t8.start()
-    t8.join()
+    t5 = threading.Thread(target=associate_s2_account_group_vdi0_host)
+    t5.start()
+    t5.join()
 
 
     #创建子线程--将访问NFS资源的用户账户和权限组进行关联，用户加入资源组之后，就可以访问共享目录的资源 vdi1客户端
-    t9 = threading.Thread(target=associate_s2_account_group_vdi1_host)
-    t9.start()
-    t9.join()
+    t6 = threading.Thread(target=associate_s2_account_group_vdi1_host)
+    t6.start()
+    t6.join()
 
     #创建子线程--更新共享存储服务器的配置信息
-    t10 = threading.Thread(target=update_s2_servers)
-    t10.start()
-    t10.join()
+    t7 = threading.Thread(target=update_s2_servers)
+    t7.start()
+    t7.join()
 
     #s2server 写入文件
     s2server_ip_conf = "/tmp/s2server_ip_conf"
