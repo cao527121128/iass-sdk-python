@@ -216,11 +216,11 @@ def get_user_id():
     print("user_id=%s" % (user_id))
     return user_id
 
-def get_volume_id():
+def get_volume_id(user_id):
     print("get_volume_id")
     global conn
 
-    ret = conn.describe_volumes(volume_type=0, status=['available'], limit=1)
+    ret = conn.describe_volumes(volume_type=0, status=['available'], owner=user_id,limit=1)
     if ret < 0:
         print("describe_volumes fail")
         exit(-1)
@@ -237,6 +237,21 @@ def get_volume_id():
     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
 
     volume_id = wanted_volume.get('volume_id')
+    print("volume_id == %s" % (volume_id))
+    return volume_id
+
+def create_new_volumes(user_id):
+    print("create_new_volumes")
+    global conn
+    volume_id = None
+
+    ret = conn.create_volumes(size=10, volume_name='vdi-portal-nas-disk', volume_type=0,count=1,target_user=user_id)
+    if ret < 0:
+        print("create_volumes fail")
+        exit(-1)
+    print("ret == %s" %(ret))
+    if ret.get("ret_code") == 0:
+        volume_id = ret.get('volumes')[0]
     print("volume_id == %s" % (volume_id))
     return volume_id
 
@@ -273,14 +288,20 @@ def create_s2_shared_target():
     global conn
     global g_s2_server_id
     global g_s2_shared_target_id
+    volume_id = None
 
     #get availlable volume 10G
-    volume_id = get_volume_id()
+    user_id = get_user_id()
+    #volume_id = get_volume_id(user_id)
     if not volume_id:
         print("can't get available volume")
-        exit(-1)
+        print("it will start create_volumes")
+        volume_id = create_new_volumes(user_id)
+        if not volume_id:
+            print("can't create new volumes")
+            exit(-1)
     print("get available volume volume_id == %s" %(volume_id))
-
+    time.sleep(5)
     ret = conn.create_s2_shared_target(
         s2_server_id=g_s2_server_id,
         volumes=[volume_id],
@@ -293,6 +314,11 @@ def create_s2_shared_target():
         exit(-1)
     print("ret==%s" % (ret))
     g_s2_shared_target_id = ret.get("s2_shared_target")
+    if  not  g_s2_shared_target_id:
+        print("g_s2_shared_target_id == %s" % (g_s2_shared_target_id))
+        print("can't get g_s2_shared_target_id")
+        exit(-1)
+
     print("g_s2_shared_target_id==%s" % (g_s2_shared_target_id))
     print("子线程结束")
 
