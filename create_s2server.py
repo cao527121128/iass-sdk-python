@@ -126,6 +126,25 @@ def get_s2_server_status():
     print("status=%s" % (status))
     return status
 
+def get_job_status(job_id):
+    print("get_job_status")
+    global conn
+    ret = conn.describe_jobs(jobs=[job_id],verbose=1)
+    print("ret == %s" %(ret))
+
+    matched_job_set = ret['job_set']
+    print("matched_job_set == %s"%(matched_job_set))
+
+    print("************************************")
+
+    wanted_job_set = matched_job_set[0]
+    print("wanted_job_set == %s" % (wanted_job_set))
+
+    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    status = wanted_job_set.get('status')
+    print("status=%s" % (status))
+    return status
+
 
 def get_s2_servers_transition_status():
     print("get_s2_servers_transition_status")
@@ -246,12 +265,19 @@ def create_new_volumes(user_id):
     volume_id = None
 
     ret = conn.create_volumes(size=10, volume_name='vdi-portal-nas-disk', volume_type=0,count=1,target_user=user_id)
-    if ret < 0:
-        print("create_volumes fail")
-        exit(-1)
     print("ret == %s" %(ret))
+    num = 0
     if ret.get("ret_code") == 0:
         volume_id = ret.get('volumes')[0]
+        job_id = ret.get('job_id')
+        while num < 300:
+            num = num + 1
+            print("num == %d" %(num))
+            status = get_job_status(job_id)
+            if status == "successful":
+                print("create_volumes successful")
+                break
+
     print("volume_id == %s" % (volume_id))
     return volume_id
 
@@ -301,7 +327,6 @@ def create_s2_shared_target():
             print("can't create new volumes")
             exit(-1)
     print("get available volume volume_id == %s" %(volume_id))
-    time.sleep(5)
     ret = conn.create_s2_shared_target(
         s2_server_id=g_s2_server_id,
         volumes=[volume_id],
@@ -374,7 +399,7 @@ def describe_s2_account_vdi1_host():
     print("ret==%s" % (ret))
     if ret.get('ret_code') == 0:
         if ret.get('total_count') == 1:
-            print("account ipaddr[%s] already existed" %(g_vdi0_ip))
+            print("account ipaddr[%s] already existed" %(g_vdi1_ip))
             # g_s2_account_id_vdi0_host = ret.get('s2_account_id')
             matched_s2_account_set = ret['s2_account_set']
             if not matched_s2_account_set:
