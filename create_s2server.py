@@ -505,30 +505,30 @@ if __name__ == "__main__":
     t2.start()
     t2.join()
 
-    #创建子线程--更新共享存储服务器的配置信息
-    t3 = threading.Thread(target=update_s2_servers)
-    t3.start()
-    t3.join()
+    # #创建子线程--更新共享存储服务器的配置信息
+    # t3 = threading.Thread(target=update_s2_servers)
+    # t3.start()
+    # t3.join()
 
     #创建子线程--创建vnas服务访问资源账号 vdi0客户端
     t4 = threading.Thread(target=create_s2_account_vdi0_host)
     t4.start()
     t4.join()
 
-    #创建子线程--更新共享存储服务器的配置信息
-    t5 = threading.Thread(target=update_s2_servers)
-    t5.start()
-    t5.join()
+    # #创建子线程--更新共享存储服务器的配置信息
+    # t5 = threading.Thread(target=update_s2_servers)
+    # t5.start()
+    # t5.join()
 
     #创建子线程--创建vnas服务访问资源账号 vdi1客户端
     t6 = threading.Thread(target=create_s2_account_vdi1_host)
     t6.start()
     t6.join()
 
-    #创建子线程--更新共享存储服务器的配置信息
-    t7 = threading.Thread(target=update_s2_servers)
-    t7.start()
-    t7.join()
+    # #创建子线程--更新共享存储服务器的配置信息
+    # t7 = threading.Thread(target=update_s2_servers)
+    # t7.start()
+    # t7.join()
 
     #创建子线程--将访问NFS资源的用户账户和权限组进行关联，用户加入资源组之后，就可以访问共享目录的资源 vdi0客户端
     t8 = threading.Thread(target=associate_s2_account_group_vdi0_host)
