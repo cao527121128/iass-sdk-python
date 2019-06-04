@@ -152,6 +152,9 @@ if __name__ == "__main__":
     loadbalancer_quota_left = get_user_quota_left('loadbalancer', user_id)
     print("loadbalancer_quota_left=%d" % (loadbalancer_quota_left))
 
+    s2_server_quota_left = get_user_quota_left('s2_server', user_id)
+    print("s2_server_quota_left=%d" % (s2_server_quota_left))
+
     # rdb_quota_left 写入文件
     rdb_quota_left_conf = "/tmp/rdb_quota_left_conf"
     with open(rdb_quota_left_conf, "w+") as f1:
@@ -171,6 +174,11 @@ if __name__ == "__main__":
     loadbalancer_quota_left_conf = "/tmp/loadbalancer_quota_left_conf"
     with open(loadbalancer_quota_left_conf, "w+") as f1:
         f1.write("LOADBALANCER_QUOTA_LEFT %d" % (loadbalancer_quota_left))
+
+    # s2_server_quota_left 写入文件
+    s2_server_quota_left_conf = "/tmp/s2_server_quota_left_conf"
+    with open(s2_server_quota_left_conf, "w+") as f1:
+        f1.write("S2_SERVER_QUOTA_LEFT %d" % (s2_server_quota_left))
 
     print("主线程结束")
 
