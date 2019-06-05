@@ -53,9 +53,15 @@ def get_user_id():
     global access_key_id
     #查看access_keys详情
     ret = conn.describe_access_keys(access_keys=[access_key_id])
-    if ret < 0:
-        print("describe_access_keys fail")
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_access_keys failed")
         exit(-1)
+
     matched_access_key = ret['access_key_set']
     print("matched_access_key==%s" % (matched_access_key))
 
@@ -76,10 +82,14 @@ def get_instance_vxnet_id(resource_id):
 
     #查看主机的基础网络vxnet_id
     ret = conn.describe_instances(instances=[resource_id],verbose=1)
-    if ret < 0:
-        print("describe_vxnets fail")
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_instances failed")
         exit(-1)
-    # print("ret=%s" %(ret))
+
     instance_set = ret['instance_set']
     # print("instance_set==%s" % (instance_set))
 

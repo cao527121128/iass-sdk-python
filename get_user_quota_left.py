@@ -53,9 +53,15 @@ def get_user_id():
     global access_key_id
     #查看access_keys详情
     ret = conn.describe_access_keys(access_keys=[access_key_id])
-    if ret < 0:
-        print("describe_access_keys fail")
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_access_keys failed")
         exit(-1)
+
     matched_access_key = ret['access_key_set']
     print("matched_access_key==%s" % (matched_access_key))
 
@@ -76,10 +82,14 @@ def get_user_quota_left(resource_type,user_id):
 
     #查看用户配额剩余
     ret = conn.get_quota_left(resource_types=[resource_type], owner=user_id)
-    if ret < 0:
-        print("get_quota_left fail")
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("get_quota_left failed")
         exit(-1)
-    print("ret=%s" %(ret))
+
     print("************************************")
     quota_left_set = ret.get("quota_left_set")
     print("quota_left_set==%s" % (quota_left_set))
