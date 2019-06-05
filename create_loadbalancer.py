@@ -32,10 +32,6 @@ g_loadbalancer_listeners_id = None
 eip_addr = None
 
 
-
-
-
-
 def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
     print("connect_iaas")
     print("starting connect_to_zone ...")
@@ -58,37 +54,52 @@ def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
         print("user_id is null")
         exit(-1)
 
-def create_loadbalancer(vxnet_id,eip_id):
+def create_loadbalancer(vxnet_id,eip_id,private_ips):
     print("子线程启动")
     print("create_loadbalancer")
     global conn
     global g_loadbalancer_id
+
+    print("vxnet_id == %s" % (vxnet_id))
+    print("eip_id == %s" %(eip_id))
+    print("private_ips == %s" % (private_ips))
+
     if not eip_id:
         print("create_loadbalancer with vxnet_id=%s" %(vxnet_id))
-        ret = conn.create_loadbalancer(
-            vxnet=vxnet_id,
-            loadbalancer_name='vdi-portal-loadbalancer'
-        )
+        if not private_ips:
+            print("private_ips is null")
+            ret = conn.create_loadbalancer(
+                vxnet=vxnet_id,
+                loadbalancer_name='vdi-portal-loadbalancer'
+            )
+        else:
+            print("private_ips is not null")
+            ret = conn.create_loadbalancer(
+                vxnet=vxnet_id,
+                private_ip=private_ips,
+                loadbalancer_name='vdi-portal-loadbalancer'
+            )
     else:
         print("create_loadbalancer with eip_id=%s" % (eip_id))
         ret = conn.create_loadbalancer(
             eips=[eip_id],
             loadbalancer_name='vdi-portal-loadbalancer'
     )
-    if ret < 0:
-        print("create_loadbalancer fail")
-        exit(-1)
-    print("ret==%s" % (ret))
 
-    #check ret_code
+
+    # check ret_code
+    print("ret==%s" % (ret))
     ret_code = ret.get("ret_code")
     print("ret_code==%s" % (ret_code))
-    if ret_code!=0:
-        print("create_loadbalancer ret_code is error")
+    if ret_code != 0:
+        print("create_loadbalancer failed")
         exit(-1)
 
+    #get loadbalancer_id
     g_loadbalancer_id = ret.get("loadbalancer_id")
     print("g_loadbalancer_id=%s" %(g_loadbalancer_id))
+
+    #check create_loadbalancer status
     status = "pending"
     num = 0
     while status != "active" and num <= 300:
@@ -108,14 +119,16 @@ def get_loadbalancer_ip():
     global conn
     global g_loadbalancer_id
     ret = conn.describe_loadbalancers(loadbalancers=[g_loadbalancer_id],verbose=1)
-    if ret < 0:
-        print("describe_loadbalancers fail")
-        exit(-1)
-    # print(ret)
-    matched_loadbalancer = ret['loadbalancer_set']
-    # print("matched_loadbalancer==%s"%(matched_loadbalancer))
 
-    # print("************************************")
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_loadbalancers failed")
+        exit(-1)
+
+    matched_loadbalancer = ret['loadbalancer_set']
 
     wanted_loadbalancer = matched_loadbalancer[0]
     print("wanted_loadbalancer==%s" % (wanted_loadbalancer))
@@ -136,21 +149,20 @@ def get_loadbalancer_status():
     print("get_loadbalancer_status")
     global conn
     global g_loadbalancer_id
-    # ret = conn.describe_loadbalancers(limit=1,search_word='vdi-portal-loadbalancer',verbose=1)
     ret = conn.describe_loadbalancers(loadbalancers=[g_loadbalancer_id],verbose=1)
-    if ret < 0:
-        print("describe_loadbalancers fail")
-        exit(-1)
-    # print(ret)
-    matched_loadbalancer = ret['loadbalancer_set']
-    # print("matched_loadbalancer==%s"%(matched_loadbalancer))
 
-    # print("************************************")
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_loadbalancers failed")
+        exit(-1)
+
+    matched_loadbalancer = ret['loadbalancer_set']
 
     wanted_loadbalancer = matched_loadbalancer[0]
-    print("wanted_loadbalancer==%s" % (wanted_loadbalancer))
 
-    # print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     status = wanted_loadbalancer.get('status')
     print("status=%s" % (status))
     return status
@@ -161,19 +173,19 @@ def get_loadbalancer_transition_status():
     global conn
     global g_loadbalancer_id
     ret = conn.describe_loadbalancers(loadbalancers=[g_loadbalancer_id], verbose=1)
-    if ret < 0:
-        print("describe_loadbalancers fail")
-        exit(-1)
-    # print(ret)
-    matched_loadbalancer = ret['loadbalancer_set']
-    # print("matched_loadbalancer==%s"%(matched_loadbalancer))
 
-    # print("************************************")
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_loadbalancers failed")
+        exit(-1)
+
+    matched_loadbalancer = ret['loadbalancer_set']
 
     wanted_loadbalancer = matched_loadbalancer[0]
-    # print("wanted_loadbalancer==%s" % (wanted_loadbalancer))
 
-    # print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     transition_status = wanted_loadbalancer.get('transition_status')
     print("transition_status=%s" % (transition_status))
     return transition_status
@@ -186,18 +198,17 @@ def get_vxnet_id():
     global conn
     #查看基础网络vxnet_id
     ret = conn.describe_vxnets(limit=1, vxnet_type=2)
-    if ret < 0:
-        print("describe_vxnets fail")
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_vxnets failed")
         exit(-1)
+
     matched_vxnet = ret['vxnet_set']
-    # print("matched_vxnet==%s" % (matched_vxnet))
-
-    # print("************************************")
-
     wanted_vxnet = matched_vxnet[0]
-    # print("wanted_vxnet==%s" % (wanted_vxnet))
-
-    # print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     vxnet_id = wanted_vxnet.get('vxnet_id')
     print("vxnet_id=%s" % (vxnet_id))
     return vxnet_id
@@ -209,18 +220,17 @@ def get_user_id():
     global access_key_id
     #查看access_keys详情
     ret = conn.describe_access_keys(access_keys=[access_key_id])
-    if ret < 0:
-        print("describe_access_keys fail")
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_access_keys failed")
         exit(-1)
+
     matched_access_key = ret['access_key_set']
-    # print("matched_access_key==%s" % (matched_access_key))
-
-    # print("************************************")
-
     wanted_access_key = matched_access_key[0]
-    # print("wanted_access_key==%s" % (wanted_access_key))
-
-    # print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     user_id = wanted_access_key.get('owner')
     print("user_id=%s" % (user_id))
     return user_id
@@ -231,20 +241,22 @@ def get_eip_id():
     #查看公网IP
     user_id = get_user_id()
     ret = conn.describe_eips(limit=1, status=['available'], owner=user_id, verbose=1)
-    if ret < 0:
-        print("describe_eips fail")
-        exit(-1)
-    matched_eip = ret['eip_set']
-    # print("matched_eip==%s" % (matched_eip))
 
-    # print("************************************")
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_eips failed")
+        exit(-1)
+
+    matched_eip = ret['eip_set']
     if  not matched_eip:
         print("matched_eip is null")
         exit(-1)
     wanted_eip = matched_eip[0]
     print("wanted_eip==%s" % (wanted_eip))
 
-    # print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     eip_id = wanted_eip['eip_id']
     print("eip_id=%s" % (eip_id))
     return eip_id
@@ -255,9 +267,15 @@ def get_eip_addr_by_eip_id(eip_id):
     #查看公网IP
     user_id = get_user_id()
     ret = conn.describe_eips(eips=[eip_id],owner=user_id, verbose=1)
-    if ret < 0:
-        print("describe_eips fail")
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_eips failed")
         exit(-1)
+
     matched_eip = ret['eip_set']
     print("matched_eip==%s" % (matched_eip))
 
@@ -338,10 +356,14 @@ def add_loadbalancer_listeners():
         listeners=listeners
     )
 
-    if ret < 0:
-        print("add_listeners_to_loadbalancer fail")
-        exit(-1)
+    # check ret_code
     print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("add_listeners_to_loadbalancer failed")
+        exit(-1)
+
     g_loadbalancer_listeners_id = ret.get("loadbalancer_listeners")
     print("g_loadbalancer_listeners_id=%s" % (g_loadbalancer_listeners_id))
     print("子线程结束")
@@ -357,10 +379,13 @@ def update_loadbalancers():
         target_user=user_id
     )
 
-    if ret < 0:
-        print("update_loadbalancers fail")
-        exit(-1)
+    # check ret_code
     print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("update_loadbalancers failed")
+        exit(-1)
 
     status = "pending"
     transition_status = "updating"
@@ -372,34 +397,6 @@ def update_loadbalancers():
         status = get_loadbalancer_status()
     print("子线程结束")
 
-# def add_backends_to_listener(resource_id):
-#     print("子线程启动")
-#     print("add_backends_to_listener")
-#     global conn
-#     global g_loadbalancer_listeners_id
-#     for res_id in resource_id:
-#         backends=[
-#             {"resource_id":res_id,
-#              "port":80,"weight":"1",
-#              "loadbalancer_backend_name":"backend_desktop_server_01"
-#             }
-#         ]
-#
-#         print("g_loadbalancer_listeners_id=%s" % (g_loadbalancer_listeners_id))
-#         print("g_loadbalancer_listeners_id[0]=%s" % (g_loadbalancer_listeners_id[0]))
-#         print("g_loadbalancer_listeners_id[1]=%s" % (g_loadbalancer_listeners_id[1]))
-#         print("backends=%s" % (backends))
-#         for listeners_id in g_loadbalancer_listeners_id:
-#             ret = conn.add_backends_to_listener(
-#                 loadbalancer_listener=listeners_id,
-#                 backends=backends
-#             )
-#
-#             if ret < 0:
-#                 print("add_backends_to_listener fail")
-#                 exit(-1)
-#             print("ret==%s" % (ret))
-#     print("子线程结束")
 
 def add_backends_to_listener(resource_id):
     print("子线程启动")
@@ -435,10 +432,14 @@ def add_backends_to_listener(resource_id):
                                 loadbalancer_listener=loadbalancer_listener_id,
                                 backends=backends
                             )
-                if ret < 0:
-                    print("add_backends_to_listener fail")
-                    exit(-1)
+                # check ret_code
                 print("ret==%s" % (ret))
+                ret_code = ret.get("ret_code")
+                print("ret_code==%s" % (ret_code))
+                if ret_code != 0:
+                    print("add_backends_to_listener failed")
+                    exit(-1)
+
 
             elif listener_port == 9520:
                 backends=[
@@ -453,10 +454,14 @@ def add_backends_to_listener(resource_id):
                                 loadbalancer_listener=loadbalancer_listener_id,
                                 backends=backends
                             )
-                if ret < 0:
-                    print("add_backends_to_listener fail")
-                    exit(-1)
+                # check ret_code
                 print("ret==%s" % (ret))
+                ret_code = ret.get("ret_code")
+                print("ret_code==%s" % (ret_code))
+                if ret_code != 0:
+                    print("add_backends_to_listener failed")
+                    exit(-1)
+
             elif listener_port == 10080:
                 backends=[
                     {"resource_id":res_id,
@@ -524,6 +529,9 @@ if __name__ == "__main__":
     opt_parser.add_option("-F", "--platform", action="store", type="string", \
                           dest="platform", help='platform', default="")
 
+    opt_parser.add_option("-m", "--private_ips", action="store", type="string", \
+                          dest="private_ips", help='memcache private ips', default="")
+
 
 
     (options, _) = opt_parser.parse_args(sys.argv)
@@ -540,6 +548,7 @@ if __name__ == "__main__":
         platform = "qingcloud"
     else:
         platform = options.platform
+    private_ips = options.private_ips
     print("zone_id:%s" % (zone_id))
     print("access_key_id:%s" % (access_key_id))
     print("secret_access_key:%s" % (secret_access_key))
@@ -550,7 +559,7 @@ if __name__ == "__main__":
     print("eip_id:%s" % (eip_id))
     print("resource_id:%s" % (resource_id))
     print("platform:%s" % (platform))
-
+    print("private_ips:%s" % (private_ips))
 
     #连接iaas后台
     connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
@@ -578,7 +587,7 @@ if __name__ == "__main__":
 
 
     #创建子线程--创建负载均衡器
-    t1 = threading.Thread(target=create_loadbalancer,args=(vxnet_id,eip_id,))
+    t1 = threading.Thread(target=create_loadbalancer,args=(vxnet_id,eip_id,private_ips,))
     t1.start()
     t1.join()
 
