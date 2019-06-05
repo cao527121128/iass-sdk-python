@@ -51,32 +51,48 @@ def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
         print("user_id is null")
         exit(-1)
 
-def create_rdb(vxnet_id):
+def create_rdb(vxnet_id,master_private_ip,topslave_private_ip):
     print("子线程启动")
     print("create_rdb")
     global conn
     global g_rdb_id
-
-    ret = conn.create_rdb(
-        # vxnet='vxnet-glp08w9',
-        vxnet=vxnet_id,
-        rdb_engine='psql',
-        engine_version='9.4',
-        rdb_username='yunify',
-        rdb_password='Zhu88jie',
-        rdb_type=2,
-        storage_size=10,
-        rdb_name='vdi-portal-postgresql'
-    )
-    if ret < 0:
-        print("create_rdb fail")
-        exit(-1)
+    print("master_private_ip == %s" %(master_private_ip))
+    print("topslave_private_ip == %s" % (topslave_private_ip))
+    if not master_private_ip:
+        print("private_ips is null")
+        ret = conn.create_rdb(
+            # vxnet='vxnet-glp08w9',
+            vxnet=vxnet_id,
+            rdb_engine='psql',
+            engine_version='9.4',
+            rdb_username='yunify',
+            rdb_password='Zhu88jie',
+            rdb_type=2,
+            storage_size=10,
+            rdb_name='vdi-portal-postgresql'
+        )
+    else:
+        print("private_ips is not null")
+        #private_ips = [{“master”:”192.168.100.14”,”topslave”:”192.168.100.17”}]
+        private_ips_list = {"master":master_private_ip,"topslave":topslave_private_ip}
+        print("private_ips_list == %s" %(private_ips_list))
+        ret = conn.create_rdb(
+            vxnet=vxnet_id,
+            rdb_engine='psql',
+            engine_version='9.4',
+            rdb_username='yunify',
+            rdb_password='Zhu88jie',
+            rdb_type=2,
+            storage_size=10,
+            rdb_name='vdi-portal-postgresql',
+            private_ips=[private_ips_list]
+        )
     print("ret==%s" % (ret))
     #check ret_code
     ret_code = ret.get("ret_code")
     print("ret_code==%s" % (ret_code))
     if ret_code!=0:
-        print("create_rdb ret_code is error")
+        print("create_rdb failed")
         exit(-1)
 
     g_rdb_id = ret.get("rdb")
@@ -129,10 +145,14 @@ def get_rdb_status():
     global conn
     global g_rdb_id
     ret = conn.describe_rdbs(rdbs=[g_rdb_id])
-    if ret < 0:
-        print("describe_rdbs fail")
+    print("ret==%s" % (ret))
+    # check ret_code
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_rdbs failed")
         exit(-1)
-    # print(ret)
+
     matched_rdb = ret['rdb_set']
     print("matched_rdb==%s"%(matched_rdb))
 
@@ -154,10 +174,14 @@ def get_rdb_master_ip():
     global conn
     global g_rdb_id
     ret = conn.describe_rdbs(rdbs=[g_rdb_id])
-    if ret < 0:
-        print("describe_rdbs fail")
+    print("ret==%s" % (ret))
+    # check ret_code
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_rdbs failed")
         exit(-1)
-    # print(ret)
+
     matched_rdb = ret['rdb_set']
     print("matched_rdb==%s"%(matched_rdb))
 
@@ -176,9 +200,14 @@ def get_vxnet_id():
     global conn
     #查看基础网络vxnet_id
     ret = conn.describe_vxnets(limit=1, vxnet_type=2)
-    if ret < 0:
-        print("describe_vxnets fail")
+    print("ret==%s" % (ret))
+    # check ret_code
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_vxnets failed")
         exit(-1)
+
     matched_vxnet = ret['vxnet_set']
     print("matched_vxnet==%s" % (matched_vxnet))
 
@@ -199,9 +228,14 @@ def get_user_id():
     global access_key_id
     #查看access_keys详情
     ret = conn.describe_access_keys(access_keys=[access_key_id])
-    if ret < 0:
-        print("describe_access_keys fail")
+    print("ret==%s" % (ret))
+    # check ret_code
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_access_keys failed")
         exit(-1)
+
     matched_access_key = ret['access_key_set']
     print("matched_access_key==%s" % (matched_access_key))
 
@@ -241,6 +275,12 @@ if __name__ == "__main__":
     opt_parser.add_option("-v", "--vxnet_id", action="store", type="string", \
                           dest="vxnet_id", help='vxnet id', default="")
 
+    opt_parser.add_option("-m", "--master_private_ip", action="store", type="string", \
+                          dest="master_private_ip", help='master private ip', default="")
+
+    opt_parser.add_option("-t", "--topslave_private_ip", action="store", type="string", \
+                          dest="topslave_private_ip", help='topslave private ip', default="")
+
     (options, _) = opt_parser.parse_args(sys.argv)
 
 
@@ -252,6 +292,8 @@ if __name__ == "__main__":
     port = options.port
     protocol = options.protocol
     vxnet_id = options.vxnet_id
+    master_private_ip = options.master_private_ip
+    topslave_private_ip = options.topslave_private_ip
     print("zone_id:%s" % (zone_id))
     print("access_key_id:%s" % (access_key_id))
     print("secret_access_key:%s" % (secret_access_key))
@@ -259,35 +301,19 @@ if __name__ == "__main__":
     print("port:%s" % (port))
     print("protocol:%s" % (protocol))
     print("vxnet_id:%s" % (vxnet_id))
+    print("master_private_ip:%s" % (master_private_ip))
+    print("topslave_private_ip:%s" % (topslave_private_ip))
 
 
     #连接iaas后台
     connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
 
-    # #获取vxnet_id
-    # if vxnet_id:
-    #     print("vxnet_id==%s" %(vxnet_id))
-    # else:
-    #     vxnet_id = get_vxnet_id()
-    #     print("vxnet_id==%s" % (vxnet_id))
 
     #创建子线程执行创建数据库的操作
-    t = threading.Thread(target=create_rdb,args=(vxnet_id,))
+    t = threading.Thread(target=create_rdb,args=(vxnet_id,master_private_ip,topslave_private_ip,))
     t.start()
     t.join()
 
-
-    # #master_ip 写入文件
-    # master_ip_conf = "/tmp/master_ip_conf"
-    # ret = get_rdb_master_ip()
-    # with open(master_ip_conf, "w+") as f1:
-    #     f1.write("POSTGRESQL_ADDRESS %s" %(ret))
-    #
-    # #user_id 写入文件
-    # user_id_conf = "/tmp/user_id_conf"
-    # ret = get_user_id()
-    # with open(user_id_conf, "w+") as f1:
-    #     f1.write("USER_ID %s" %(ret))
 
     print("主线程结束")
 
