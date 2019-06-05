@@ -2199,3 +2199,32 @@ class APIConnection(HttpConnection):
             return None
 
         return self.send_request(action, body)
+
+    def describe_vxnet_resources(self,
+                               vxnet=None,
+                               owner=None,
+                               verbose=0,
+                               search_word=None,
+                               offset=None,
+                               limit=None,
+                               **ignore):
+        """ describe vxnet resources filtered by condition.
+        @vxnet:vxnet  ID
+        @param owner: an user ID you want to list quotas.
+        @param verbose: the number to specify the verbose level,
+                        larger the number, the more detailed information will be returned.
+        @param search_word: the search word.
+        @param offset: the starting offset of the returning results.
+        @param limit: specify the number of the returning results.
+        """
+        action = const.ACTION_DESCRIBE_VXNET_RESOURCES
+        valid_keys = ['vxnet','owner','search_word']
+        body = filter_out_none(locals(), valid_keys)
+        if not self.req_checker.check_params(body,
+                                             required_params=["vxnet","owner"],
+                                             integer_params=[
+                                                 "offset", "limit", "verbose"]
+                                             ):
+            return None
+
+        return self.send_request(action, body)

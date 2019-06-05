@@ -382,3 +382,6 @@ ACTION_DELETE_CLUSTERS = "DeleteClusters"
 # quotas
 ACTION_DESCRIBE_QUOTAS = "DescribeQuotas"
 ACTION_GET_QUOTA_LEFT = "GetQuotaLeft"
+
+# vxnet resources
+ACTION_DESCRIBE_VXNET_RESOURCES = "DescribeVxnetResources"
