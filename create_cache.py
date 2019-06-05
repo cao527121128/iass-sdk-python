@@ -159,6 +159,9 @@ def get_memcached_ip():
 
     matched_cache = ret['cache_set']
     print("matched_cache==%s"%(matched_cache))
+    if not matched_cache:
+        print("matched_cache is NULL")
+        exit(-1)
 
     print("************************************")
     wanted_cache = matched_cache[0]
