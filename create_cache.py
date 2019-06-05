@@ -50,37 +50,53 @@ def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
         print("user_id is null")
         exit(-1)
 
-def create_cache(vxnet_id):
+def create_cache(vxnet_id,private_ips):
     print("子线程启动")
     print("create_cache")
     global conn
     global g_cache_id
 
-    ret = conn.create_cache(
-        # vxnet='vxnet-glp08w9',
-        vxnet=vxnet_id,
-        cache_size=1,
-        cache_type='memcached1.4.13',
-        cache_name='vdi-portal-memcached'
-    )
-    if ret < 0:
-        print("create_cache fail")
-        exit(-1)
-    print("ret==%s" % (ret))
+    #create_cache
+    print("private_ips == %s" % (private_ips))
+    if not private_ips:
+        print("private_ips is null")
+        ret = conn.create_cache(
+            # vxnet='vxnet-glp08w9',
+            vxnet=vxnet_id,
+            cache_size=1,
+            cache_type='memcached1.4.13',
+            cache_name='vdi-portal-memcached'
+        )
+    else:
+        print("private_ips is not null")
+        #private_ips = [{"cache_role":"master","private_ips":"10.11.12.52"}]
+        private_ips_list = {"cache_role": "master", "private_ips": private_ips}
+        print("private_ips_list == %s" % (private_ips_list))
+        ret = conn.create_cache(
+            # vxnet='vxnet-glp08w9',
+            vxnet=vxnet_id,
+            cache_size=1,
+            cache_type='memcached1.4.13',
+            cache_name='vdi-portal-memcached',
+            private_ips=[private_ips_list]
+        )
 
     #check ret_code
+    print("ret==%s" % (ret))
     ret_code = ret.get("ret_code")
     print("ret_code==%s" % (ret_code))
     if ret_code!=0:
-        print("create_cache ret_code is error")
+        print("create_cache failed")
         exit(-1)
 
+    #get cache_id
     g_cache_id = ret.get("cache_id")
     print("g_cache_id=%s" % (g_cache_id))
-
     if not g_cache_id:
         print("create cache fail")
         exit(-1)
+
+    #check create_cache status
     status = "pending"
     num = 0
     while status != "active" and num <= 300:
@@ -102,10 +118,16 @@ def get_cache_status():
     global conn
     global g_cache_id
     ret = conn.describe_caches(caches=[g_cache_id],verbose=1)
-    if ret < 0:
-        print("describe_caches fail")
+
+    #check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code!=0:
+        print("describe_caches failed")
         exit(-1)
-    # print(ret)
+
+
     matched_cache = ret['cache_set']
     print("matched_cache==%s"%(matched_cache))
 
@@ -126,10 +148,15 @@ def get_memcached_ip():
     global conn
     global g_cache_id
     ret = conn.describe_caches(caches=[g_cache_id], verbose=1)
-    if ret < 0:
-        print("describe_caches fail")
+
+    #check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code!=0:
+        print("describe_caches failed")
         exit(-1)
-    # print(ret)
+
     matched_cache = ret['cache_set']
     print("matched_cache==%s"%(matched_cache))
 
@@ -152,9 +179,15 @@ def get_vxnet_id():
     global conn
     #查看基础网络vxnet_id
     ret = conn.describe_vxnets(limit=1, vxnet_type=2)
-    if ret < 0:
-        print("describe_vxnets fail")
+
+    #check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code!=0:
+        print("describe_vxnets failed")
         exit(-1)
+
     matched_vxnet = ret['vxnet_set']
     print("matched_vxnet==%s" % (matched_vxnet))
 
@@ -174,9 +207,15 @@ def get_user_id():
     global access_key_id
     #查看access_keys详情
     ret = conn.describe_access_keys(access_keys=[access_key_id])
-    if ret < 0:
-        print("describe_access_keys fail")
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_access_keys failed")
         exit(-1)
+
     matched_access_key = ret['access_key_set']
     print("matched_access_key==%s" % (matched_access_key))
 
@@ -215,6 +254,9 @@ if __name__ == "__main__":
     opt_parser.add_option("-v", "--vxnet_id", action="store", type="string", \
                           dest="vxnet_id", help='vxnet id', default="")
 
+    opt_parser.add_option("-m", "--private_ips", action="store", type="string", \
+                          dest="private_ips", help='memcache private ips', default="")
+
     (options, _) = opt_parser.parse_args(sys.argv)
 
     zone_id = options.zone_id
@@ -224,6 +266,7 @@ if __name__ == "__main__":
     port = options.port
     protocol = options.protocol
     vxnet_id = options.vxnet_id
+    private_ips = options.private_ips
     print("zone_id:%s" % (zone_id))
     print("access_key_id:%s" % (access_key_id))
     print("secret_access_key:%s" % (secret_access_key))
@@ -231,20 +274,15 @@ if __name__ == "__main__":
     print("port:%s" % (port))
     print("protocol:%s" % (protocol))
     print("vxnet_id:%s" % (vxnet_id))
+    print("private_ips:%s" % (private_ips))
 
 
     #连接iaas后台
     connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
 
-    # #获取vxnet_id
-    # if vxnet_id:
-    #     print("vxnet_id==%s" %(vxnet_id))
-    # else:
-    #     vxnet_id = get_vxnet_id()
-    #     print("vxnet_id==%s" % (vxnet_id))
 
     #创建子线程执行创建数据库的操作
-    t = threading.Thread(target=create_cache,args=(vxnet_id,))
+    t = threading.Thread(target=create_cache,args=(vxnet_id,private_ips,))
     t.start()
     t.join()
 
