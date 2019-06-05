@@ -530,7 +530,7 @@ if __name__ == "__main__":
                           dest="platform", help='platform', default="")
 
     opt_parser.add_option("-m", "--private_ips", action="store", type="string", \
-                          dest="private_ips", help='memcache private ips', default="")
+                          dest="private_ips", help='private ips', default="")
 
 
 

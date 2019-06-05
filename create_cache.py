@@ -255,7 +255,7 @@ if __name__ == "__main__":
                           dest="vxnet_id", help='vxnet id', default="")
 
     opt_parser.add_option("-m", "--private_ips", action="store", type="string", \
-                          dest="private_ips", help='memcache private ips', default="")
+                          dest="private_ips", help='private ips', default="")
 
     (options, _) = opt_parser.parse_args(sys.argv)
 

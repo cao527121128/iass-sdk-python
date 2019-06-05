@@ -28,6 +28,7 @@ g_vdi0_ip = None
 g_vdi1_ip = None
 g_s2_account_id_vdi0_host = None
 g_s2_account_id_vdi1_host = None
+g_create_s2_server_flag = True
 
 
 
@@ -56,38 +57,57 @@ def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
         print("user_id is null")
         exit(-1)
 
-def create_s2server(vxnet_id):
+def create_s2server(vxnet_id,private_ips):
     print("子线程启动")
     print("create_s2server")
     global conn
     global g_s2_server_id
+    global g_create_s2_server_flag
 
-    ret = conn.create_s2_server(
-        vxnet=vxnet_id,
-        service_type='vnas',
-        s2_server_name='vdi-portal-nas',
-        s2_server_type=1,
-        description='vdi portal nas',
-        s2_class=0
-    )
-    if ret < 0:
-        print("create_s2server fail")
-        exit(-1)
+    print("vxnet_id == %s" % (vxnet_id))
+    print("private_ips == %s" % (private_ips))
+
+    if not private_ips:
+        print("private_ips is null")
+        ret = conn.create_s2_server(
+            vxnet=vxnet_id,
+            service_type='vnas',
+            s2_server_name='vdi-portal-nas',
+            s2_server_type=1,
+            description='vdi portal nas',
+            s2_class=0
+        )
+
+    else:
+        print("private_ips is not null")
+        ret = conn.create_s2_server(
+            vxnet=vxnet_id,
+            service_type='vnas',
+            s2_server_name='vdi-portal-nas',
+            s2_server_type=1,
+            description='vdi portal nas',
+            s2_class=0,
+            private_ip=private_ips
+        )
+
+
+    # check ret_code
     print("ret==%s" % (ret))
-
-    #check ret_code
     ret_code = ret.get("ret_code")
     print("ret_code==%s" % (ret_code))
-    if ret_code!=0:
-        print("create_s2server ret_code is error")
+    if ret_code != 0:
+        print("create_s2_server failed")
+        g_create_s2_server_flag = False
         exit(-1)
 
+    #get s2_server_id
     g_s2_server_id = ret.get("s2_server")
     print("g_s2_server_id=%s" % (g_s2_server_id))
-
     if not g_s2_server_id:
         print("create_s2server fail")
         exit(-1)
+
+    #check create_s2_server status
     status = "pending"
     num = 0
     while status != "active" and num <= 300:
@@ -109,10 +129,15 @@ def get_s2_server_status():
     global conn
     global g_s2_server_id
     ret = conn.describe_s2_servers(s2_servers=[g_s2_server_id],verbose=1)
-    if ret < 0:
-        print("describe_s2_servers fail")
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_s2_servers failed")
         exit(-1)
-    # print(ret)
+
     matched_s2_server = ret['s2_server_set']
     print("matched_s2_server==%s"%(matched_s2_server))
 
@@ -130,7 +155,14 @@ def get_job_status(job_id):
     print("get_job_status")
     global conn
     ret = conn.describe_jobs(jobs=[job_id],verbose=1)
-    print("ret == %s" %(ret))
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_jobs failed")
+        exit(-1)
 
     matched_job_set = ret['job_set']
     print("matched_job_set == %s"%(matched_job_set))
@@ -153,8 +185,13 @@ def get_s2_servers_transition_status():
     global g_s2_shared_target_id
 
     ret = conn.describe_s2_servers(s2_servers=[g_s2_server_id])
-    if ret < 0:
-        print("describe_s2_servers fail")
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_s2_servers failed")
         exit(-1)
 
     matched_s2_server = ret['s2_server_set']
@@ -176,10 +213,15 @@ def get_s2_server_ip():
     global conn
     global g_s2_server_id
     ret = conn.describe_s2_servers(s2_servers=[g_s2_server_id], verbose=1)
-    if ret < 0:
-        print("describe_s2_servers fail")
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_s2_servers failed")
         exit(-1)
-    # print(ret)
+
     matched_s2_server = ret['s2_server_set']
     print("matched_s2_server==%s"%(matched_s2_server))
 
@@ -197,9 +239,15 @@ def get_vxnet_id():
     global conn
     #查看基础网络vxnet_id
     ret = conn.describe_vxnets(limit=1, vxnet_type=2)
-    if ret < 0:
-        print("describe_vxnets fail")
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_vxnets failed")
         exit(-1)
+
     matched_vxnet = ret['vxnet_set']
     print("matched_vxnet==%s" % (matched_vxnet))
 
@@ -219,9 +267,15 @@ def get_user_id():
     global access_key_id
     #查看access_keys详情
     ret = conn.describe_access_keys(access_keys=[access_key_id])
-    if ret < 0:
-        print("describe_access_keys fail")
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_access_keys failed")
         exit(-1)
+
     matched_access_key = ret['access_key_set']
     print("matched_access_key==%s" % (matched_access_key))
 
@@ -240,9 +294,15 @@ def get_volume_id(user_id):
     global conn
 
     ret = conn.describe_volumes(volume_type=0, status=['available'], owner=user_id,limit=1)
-    if ret < 0:
-        print("describe_volumes fail")
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_volumes failed")
         exit(-1)
+
     matched_volume = ret['volume_set']
     if  not matched_volume:
         print("matched_volume is null")
@@ -265,7 +325,15 @@ def create_new_volumes(user_id):
     volume_id = None
 
     ret = conn.create_volumes(size=10, volume_name='vdi-portal-nas-disk', volume_type=0,count=1,target_user=user_id)
-    print("ret == %s" %(ret))
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("create_volumes failed")
+        exit(-1)
+
     num = 0
     if ret.get("ret_code") == 0:
         volume_id = ret.get('volumes')[0]
@@ -287,9 +355,15 @@ def get_s2_groups_id():
     global conn
 
     ret = conn.describe_s2_groups(group_types=['NFS_GROUP'], limit=1)
-    if ret < 0:
-        print("describe_s2_groups fail")
+
+    # check ret_code
+    print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_s2_groups failed")
         exit(-1)
+
     matched_s2_groups = ret['s2_group_set']
     if  not matched_s2_groups:
         print("matched_s2_groups is null")
@@ -334,10 +408,14 @@ def create_s2_shared_target():
         target_type='NFS',
         description='create s2 shared target'
     )
-    if ret < 0:
-        print("create_s2_shared_target fail")
-        exit(-1)
+    # check ret_code
     print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("create_s2_shared_target failed")
+        exit(-1)
+
     g_s2_shared_target_id = ret.get("s2_shared_target")
     if  not  g_s2_shared_target_id:
         print("g_s2_shared_target_id == %s" % (g_s2_shared_target_id))
@@ -362,7 +440,14 @@ def describe_s2_account_vdi0_host():
 
 
     ret = conn.describe_s2_accounts(search_word= g_vdi0_ip,verbose=1)
+    # check ret_code
     print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_s2_accounts failed")
+        exit(-1)
+
     if ret.get('ret_code') == 0:
         if ret.get('total_count') == 1:
             print("account ipaddr[%s] already existed" %(g_vdi0_ip))
@@ -396,7 +481,14 @@ def describe_s2_account_vdi1_host():
 
 
     ret = conn.describe_s2_accounts(search_word= g_vdi1_ip,verbose=1)
+    # check ret_code
     print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_s2_accounts failed")
+        exit(-1)
+
     if ret.get('ret_code') == 0:
         if ret.get('total_count') == 1:
             print("account ipaddr[%s] already existed" %(g_vdi1_ip))
@@ -426,12 +518,15 @@ def update_s2_servers():
     global g_s2_shared_target_id
 
     ret = conn.update_s2_servers(s2_servers=[g_s2_server_id])
-    if ret < 0:
-        print("update_s2_servers fail")
-        exit(-1)
+    # check ret_code
     print("ret==%s" % (ret))
-    time.sleep(1)
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("update_s2_servers failed")
+        exit(-1)
 
+    time.sleep(1)
     transition_status = "updating"
     while transition_status !="":
         time.sleep(1)
@@ -454,7 +549,14 @@ def create_s2_account_vdi0_host():
     g_s2_account_id_vdi0_host = describe_s2_account_vdi0_host()
     if not g_s2_account_id_vdi0_host:
         ret = conn.create_s2_account(account_type='NFS',account_name='vdi0-portal-account',nfs_ipaddr= g_vdi0_ip,description='create s2 account for vdi0')
+        # check ret_code
         print("ret==%s" % (ret))
+        ret_code = ret.get("ret_code")
+        print("ret_code==%s" % (ret_code))
+        if ret_code != 0:
+            print("create_s2_account failed")
+            exit(-1)
+
         g_s2_account_id_vdi0_host = ret.get('s2_account_id')
 
     print("g_s2_account_id_vdi0_host == %s" %(g_s2_account_id_vdi0_host))
@@ -476,7 +578,14 @@ def create_s2_account_vdi1_host():
     g_s2_account_id_vdi1_host = describe_s2_account_vdi1_host()
     if not g_s2_account_id_vdi1_host:
         ret = conn.create_s2_account(account_type='NFS',account_name='vdi0-portal-account',nfs_ipaddr= g_vdi1_ip,description='create s2 account for vdi1')
+        # check ret_code
         print("ret==%s" % (ret))
+        ret_code = ret.get("ret_code")
+        print("ret_code==%s" % (ret_code))
+        if ret_code != 0:
+            print("create_s2_account failed")
+            exit(-1)
+
         g_s2_account_id_vdi1_host = ret.get('s2_account_id')
 
     print("g_s2_account_id_vdi1_host == %s" %(g_s2_account_id_vdi1_host))
@@ -507,10 +616,14 @@ def associate_s2_account_group_vdi0_host():
         s2_group=s2_groups_id,
         s2_accounts=[s2_accounts_list]
     )
-    if ret < 0:
-        print("associate_s2_account_group for vdi0 fail")
-        exit(-1)
+    # check ret_code
     print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("associate_s2_account_group failed")
+        exit(-1)
+
     print("子线程结束")
 
 
@@ -539,10 +652,14 @@ def associate_s2_account_group_vdi1_host():
         s2_group=s2_groups_id,
         s2_accounts=[s2_accounts_list]
     )
-    if ret < 0:
-        print("associate_s2_account_group for vdi1 fail")
-        exit(-1)
+
+    # check ret_code
     print("ret==%s" % (ret))
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("associate_s2_account_group failed")
+        exit(-1)
     print("子线程结束")
 
 
@@ -575,8 +692,11 @@ if __name__ == "__main__":
     opt_parser.add_option("-i", "--vdi0_ip", action="store", type="string", \
                           dest="vdi0_ip", help='vdi0 ip', default="")
 
-    opt_parser.add_option("-m", "--vdi1_ip", action="store", type="string", \
+    opt_parser.add_option("-d", "--vdi1_ip", action="store", type="string", \
                           dest="vdi1_ip", help='vdi1 ip', default="")
+
+    opt_parser.add_option("-m", "--private_ips", action="store", type="string", \
+                          dest="private_ips", help='private ips', default="")
 
     (options, _) = opt_parser.parse_args(sys.argv)
 
@@ -589,6 +709,7 @@ if __name__ == "__main__":
     vxnet_id = options.vxnet_id
     g_vdi0_ip = options.vdi0_ip
     g_vdi1_ip = options.vdi1_ip
+    private_ips = options.private_ips
 
     #test
     #g_vdi0_ip = "10.11.11.86"
@@ -602,6 +723,7 @@ if __name__ == "__main__":
     print("vxnet_id:%s" % (vxnet_id))
     print("g_vdi0_ip:%s" % (g_vdi0_ip))
     print("g_vdi1_ip:%s" % (g_vdi1_ip))
+    print("private_ips:%s" % (private_ips))
 
 
     #连接iaas后台
@@ -609,9 +731,15 @@ if __name__ == "__main__":
 
 
     #创建子线程--创建共享存储服务器
-    t = threading.Thread(target=create_s2server,args=(vxnet_id,))
+    t = threading.Thread(target=create_s2server,args=(vxnet_id,private_ips,))
     t.start()
     t.join()
+
+    print("g_create_s2_server_flag == %d" % (g_create_s2_server_flag))
+    if not g_create_s2_server_flag:
+        print("create_s2server failed")
+        exit(-1)
+
 
     #创建子线程--新建共享存储目标
     t2 = threading.Thread(target=create_s2_shared_target)
