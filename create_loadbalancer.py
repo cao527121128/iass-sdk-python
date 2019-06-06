@@ -30,6 +30,7 @@ platform = None
 g_loadbalancer_id = None
 g_loadbalancer_listeners_id = None
 eip_addr = None
+g_vdi_portal_loadbalancer_ip_flag = True
 
 
 def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
@@ -395,6 +396,11 @@ def update_loadbalancers():
             transition_status = get_loadbalancer_transition_status()
         time.sleep(1)
         status = get_loadbalancer_status()
+
+    transition_status = get_loadbalancer_transition_status()
+    status = get_loadbalancer_status()
+    print("update_loadbalancers transition_status == %s" %(transition_status))
+    print("update_loadbalancers status == %s" %(status))
     print("子线程结束")
 
 
@@ -499,6 +505,109 @@ def explode_array(list_str, separator = ","):
     return result
 
 
+def check_loadbalancer(vdi_portal_loadbalancer_ip):
+    print("子线程启动")
+    print("check_loadbalancer")
+    global conn
+    global g_vdi_portal_loadbalancer_ip_flag
+    global g_loadbalancer_id
+
+    user_id = get_user_id()
+    print("user_id==%s" %(user_id))
+    print("vdi_portal_loadbalancer_ip==%s" % (vdi_portal_loadbalancer_ip))
+
+    ret = conn.describe_loadbalancers(offset=0, limit=100, search_word=vdi_portal_loadbalancer_ip,owner=user_id)
+    print("ret==%s" % (ret))
+    # check ret_code
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("describe_vxnet_resources failed")
+        exit(-1)
+
+    #get total
+    total_count = ret.get('total_count')
+    print("total_count == %d" %(total_count))
+    if not total_count:
+        g_vdi_portal_loadbalancer_ip_flag = False
+        print("total_count == %d" % (total_count))
+        print("vdi_portal_loadbalancer_ip:%s is not exist" %(vdi_portal_loadbalancer_ip))
+        print("you need create new loadbalancer")
+
+    else:
+        g_vdi_portal_loadbalancer_ip_flag = True
+        print("total_count == %d" % (total_count))
+        print("vdi_portal_loadbalancer_ip:%s is exist" %(vdi_portal_loadbalancer_ip))
+        print("no need recreate loadbalancer")
+        #get loadbalancer_id
+        matched_loadbalancer = ret['loadbalancer_set']
+        wanted_loadbalancer = matched_loadbalancer[0]
+        g_loadbalancer_id = wanted_loadbalancer.get('loadbalancer_id')
+        print("g_loadbalancer_id=%s" % (g_loadbalancer_id))
+
+        #DescribeLoadBalancerListeners
+        print("DescribeLoadBalancerListeners")
+        ret = conn.describe_loadbalancer_listeners(loadbalancer=g_loadbalancer_id, offset=0, limit=50, verbose=1)
+        print("ret==%s" % (ret))
+        # check ret_code
+        ret_code = ret.get("ret_code")
+        print("ret_code==%s" % (ret_code))
+        if ret_code != 0:
+            print("describe_loadbalancer_listeners failed")
+            exit(-1)
+        # get total
+        total_count = ret.get('total_count')
+        print("total_count == %d" % (total_count))
+
+        matched_loadbalancer_listener = ret['loadbalancer_listener_set']
+        num = 0
+        while num < total_count:
+            print("num == %d" %(num))
+            loadbalancer_listener_id = None
+            wanted_loadbalancer_listener = matched_loadbalancer_listener[num]
+            loadbalancer_listener_id = wanted_loadbalancer_listener.get("loadbalancer_listener_id")
+            num = num + 1
+
+            if loadbalancer_listener_id:
+                # DeleteLoadBalancerListeners
+                ret = conn.delete_loadbalancer_listeners(loadbalancer_listeners=[loadbalancer_listener_id])
+                print("ret==%s" % (ret))
+                # check ret_code
+                ret_code = ret.get("ret_code")
+                print("ret_code==%s" % (ret_code))
+                if ret_code != 0:
+                    print("delete_loadbalancer_listeners failed")
+                    exit(-1)
+
+        #UpdateLoadBalancers
+        print("UpdateLoadBalancers")
+        ret = conn.update_loadbalancers(
+            loadbalancers=[g_loadbalancer_id],
+            target_user=user_id
+        )
+
+        # check ret_code
+        print("ret==%s" % (ret))
+        ret_code = ret.get("ret_code")
+        print("ret_code==%s" % (ret_code))
+        if ret_code != 0:
+            print("update_loadbalancers failed")
+            exit(-1)
+
+        status = "pending"
+        transition_status = "updating"
+        while status != "active":
+            while transition_status != "":
+                time.sleep(1)
+                transition_status = get_loadbalancer_transition_status()
+            time.sleep(1)
+            status = get_loadbalancer_status()
+        transition_status = get_loadbalancer_transition_status()
+        status = get_loadbalancer_status()
+        print("update_loadbalancers transition_status == %s" %(transition_status))
+        print("update_loadbalancers status == %s" %(status))
+    print("子线程结束")
+
 if __name__ == "__main__":
     print("主线程启动")
 
@@ -532,6 +641,9 @@ if __name__ == "__main__":
     opt_parser.add_option("-m", "--private_ips", action="store", type="string", \
                           dest="private_ips", help='private ips', default="")
 
+    opt_parser.add_option("-l", "--vdi_portal_loadbalancer_ip", action="store", type="string", \
+                          dest="vdi_portal_loadbalancer_ip", help='vdi_portal loadbalancer ip', default="")
+
 
 
     (options, _) = opt_parser.parse_args(sys.argv)
@@ -549,6 +661,7 @@ if __name__ == "__main__":
     else:
         platform = options.platform
     private_ips = options.private_ips
+    vdi_portal_loadbalancer_ip = options.vdi_portal_loadbalancer_ip
     print("zone_id:%s" % (zone_id))
     print("access_key_id:%s" % (access_key_id))
     print("secret_access_key:%s" % (secret_access_key))
@@ -560,6 +673,7 @@ if __name__ == "__main__":
     print("resource_id:%s" % (resource_id))
     print("platform:%s" % (platform))
     print("private_ips:%s" % (private_ips))
+    print("vdi_portal_loadbalancer_ip:%s" % (vdi_portal_loadbalancer_ip))
 
     #连接iaas后台
     connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
@@ -583,13 +697,20 @@ if __name__ == "__main__":
             vxnet_id = get_vxnet_id()
             print("vxnet_id==%s" % (vxnet_id))
 
+    #创建子线程--检测负载均衡器是否已经存在
+    t = threading.Thread(target=check_loadbalancer,args=(vdi_portal_loadbalancer_ip,))
+    t.start()
+    t.join()
 
 
 
-    #创建子线程--创建负载均衡器
-    t1 = threading.Thread(target=create_loadbalancer,args=(vxnet_id,eip_id,private_ips,))
-    t1.start()
-    t1.join()
+    if not g_vdi_portal_loadbalancer_ip_flag:
+        print("loadbalancer is not exist,you need create new loadbalancer")
+        #创建子线程--创建负载均衡器
+        t1 = threading.Thread(target=create_loadbalancer,args=(vxnet_id,eip_id,private_ips,))
+        t1.start()
+        t1.join()
+
 
 
     #创建子线程--添加负载均衡器监听器
@@ -597,10 +718,14 @@ if __name__ == "__main__":
     t2.start()
     t2.join()
 
+
+
     #创建子线程--更新负载均衡器：使添加的监听器生效
     t3 = threading.Thread(target=update_loadbalancers)
     t3.start()
     t3.join()
+
+
 
     # 创建子线程--添加负载均衡器监听器后端服务
     t4 = threading.Thread(target=add_backends_to_listener, args=(resource_id,))
@@ -618,7 +743,7 @@ if __name__ == "__main__":
         loadbalancer_ip = get_loadbalancer_ip()
     else:
         loadbalancer_ip = eip_addr
-        
+
     print("loadbalancer_ip=%s" %(loadbalancer_ip))
     #loadbalancer_ip 写入文件
     loadbalancer_ip_conf = "/tmp/loadbalancer_ip_conf"
