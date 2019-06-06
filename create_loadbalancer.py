@@ -30,7 +30,7 @@ platform = None
 g_loadbalancer_id = None
 g_loadbalancer_listeners_id = None
 eip_addr = None
-g_vdi_portal_loadbalancer_ip_flag = True
+g_vdi_portal_loadbalancer_ip_flag = False
 
 
 def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
@@ -697,10 +697,11 @@ if __name__ == "__main__":
             vxnet_id = get_vxnet_id()
             print("vxnet_id==%s" % (vxnet_id))
 
-    #创建子线程--检测负载均衡器是否已经存在
-    t = threading.Thread(target=check_loadbalancer,args=(vdi_portal_loadbalancer_ip,))
-    t.start()
-    t.join()
+    if vdi_portal_loadbalancer_ip:
+        #创建子线程--检测负载均衡器是否已经存在
+        t = threading.Thread(target=check_loadbalancer,args=(vdi_portal_loadbalancer_ip,))
+        t.start()
+        t.join()
 
 
 
