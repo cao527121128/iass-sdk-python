@@ -747,7 +747,7 @@ if __name__ == "__main__":
 
     print("loadbalancer_ip=%s" %(loadbalancer_ip))
     #loadbalancer_ip 写入文件
-    loadbalancer_ip_conf = "/tmp/loadbalancer_ip_conf"
+    loadbalancer_ip_conf = "/opt/loadbalancer_ip_conf"
     with open(loadbalancer_ip_conf, "w+") as f1:
         f1.write("LOADBALANCER_IP %s" %(loadbalancer_ip))
 

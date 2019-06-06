@@ -166,27 +166,27 @@ if __name__ == "__main__":
     print("s2_server_quota_left=%d" % (s2_server_quota_left))
 
     # rdb_quota_left 写入文件
-    rdb_quota_left_conf = "/tmp/rdb_quota_left_conf"
+    rdb_quota_left_conf = "/opt/rdb_quota_left_conf"
     with open(rdb_quota_left_conf, "w+") as f1:
         f1.write("RDB_QUOTA_LEFT %d" % (rdb_quota_left))
 
     # cache_quota_left 写入文件
-    cache_quota_left_conf = "/tmp/cache_quota_left_conf"
+    cache_quota_left_conf = "/opt/cache_quota_left_conf"
     with open(cache_quota_left_conf, "w+") as f1:
         f1.write("CACHE_QUOTA_LEFT %d" % (cache_quota_left))
 
     # instance_quota_left 写入文件
-    instance_quota_left_conf = "/tmp/instance_quota_left_conf"
+    instance_quota_left_conf = "/opt/instance_quota_left_conf"
     with open(instance_quota_left_conf, "w+") as f1:
         f1.write("INSTANCE_QUOTA_LEFT %d" % (instance_quota_left))
 
     # loadbalancer_quota_left 写入文件
-    loadbalancer_quota_left_conf = "/tmp/loadbalancer_quota_left_conf"
+    loadbalancer_quota_left_conf = "/opt/loadbalancer_quota_left_conf"
     with open(loadbalancer_quota_left_conf, "w+") as f1:
         f1.write("LOADBALANCER_QUOTA_LEFT %d" % (loadbalancer_quota_left))
 
     # s2_server_quota_left 写入文件
-    s2_server_quota_left_conf = "/tmp/s2_server_quota_left_conf"
+    s2_server_quota_left_conf = "/opt/s2_server_quota_left_conf"
     with open(s2_server_quota_left_conf, "w+") as f1:
         f1.write("S2_SERVER_QUOTA_LEFT %d" % (s2_server_quota_left))
 

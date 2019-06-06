@@ -112,7 +112,7 @@ def create_rdb(vxnet_id,master_private_ip,topslave_private_ip):
         print("create_rdb timeout")
         create_rdb_status =  "False"
         # create_rdb_status 写入文件
-        create_rdb_status_conf = "/tmp/create_rdb_status_conf"
+        create_rdb_status_conf = "/opt/create_rdb_status_conf"
         with open(create_rdb_status_conf, "w+") as f1:
             f1.write("CREATE_RDB_STATUS %s" % (create_rdb_status))
         exit(-1)
@@ -120,18 +120,18 @@ def create_rdb(vxnet_id,master_private_ip,topslave_private_ip):
     #create_rdb ok
     create_rdb_status = "True"
     # create_rdb_status 写入文件
-    create_rdb_status_conf = "/tmp/create_rdb_status_conf"
+    create_rdb_status_conf = "/opt/create_rdb_status_conf"
     with open(create_rdb_status_conf, "w+") as f1:
         f1.write("CREATE_RDB_STATUS %s" % (create_rdb_status))
 
     #master_ip 写入文件
-    master_ip_conf = "/tmp/master_ip_conf"
+    master_ip_conf = "/opt/master_ip_conf"
     ret = get_rdb_master_ip()
     with open(master_ip_conf, "w+") as f1:
         f1.write("POSTGRESQL_ADDRESS %s" %(ret))
 
     #user_id 写入文件
-    user_id_conf = "/tmp/user_id_conf"
+    user_id_conf = "/opt/user_id_conf"
     ret = get_user_id()
     with open(user_id_conf, "w+") as f1:
         f1.write("USER_ID %s" %(ret))

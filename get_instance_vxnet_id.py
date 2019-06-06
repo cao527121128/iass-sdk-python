@@ -160,7 +160,7 @@ if __name__ == "__main__":
     print("instance_vxnet_id=%s" %(instance_vxnet_id))
 
     # instance_vxnet_id 写入文件
-    instance_vxnet_id_conf = "/tmp/instance_vxnet_id_conf"
+    instance_vxnet_id_conf = "/opt/instance_vxnet_id_conf"
     with open(instance_vxnet_id_conf, "w+") as f1:
         f1.write("INSTANCE_VXNET_ID %s" % (instance_vxnet_id))
 

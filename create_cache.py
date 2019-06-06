@@ -291,7 +291,7 @@ if __name__ == "__main__":
 
 
     #memcached_ip 写入文件
-    memcached_ip_conf = "/tmp/memcached_ip_conf"
+    memcached_ip_conf = "/opt/memcached_ip_conf"
     ret = get_memcached_ip()
     with open(memcached_ip_conf, "w+") as f1:
         f1.write("MEMCACHED_ADDRESS %s" %(ret))

@@ -324,12 +324,12 @@ if __name__ == "__main__":
     instance_id = g_cloned_instance_id[0]
     print("instance_id=%s" % (instance_id))
     #instance_id 写入文件
-    cloned_instance_id_conf = "/tmp/cloned_instance_id_conf"
+    cloned_instance_id_conf = "/opt/cloned_instance_id_conf"
     with open(cloned_instance_id_conf, "w+") as f1:
         f1.write("CLONED_INSTANCE_ID %s" %(instance_id))
 
     # g_cloned_instance_ip 写入文件
-    cloned_instance_ip_conf = "/tmp/cloned_instance_ip_conf"
+    cloned_instance_ip_conf = "/opt/cloned_instance_ip_conf"
     with open(cloned_instance_ip_conf, "w+") as f1:
         f1.write("CLONED_INSTANCE_IP %s" % (g_cloned_instance_ip))
 

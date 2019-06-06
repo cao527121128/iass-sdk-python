@@ -776,7 +776,7 @@ if __name__ == "__main__":
     t7.join()
 
     #s2server 写入文件
-    s2server_ip_conf = "/tmp/s2server_ip_conf"
+    s2server_ip_conf = "/opt/s2server_ip_conf"
     ret = get_s2_server_ip()
     with open(s2server_ip_conf, "w+") as f1:
         f1.write("S2SERVER_ADDRESS %s" %(ret))

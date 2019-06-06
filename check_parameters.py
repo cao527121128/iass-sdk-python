@@ -100,17 +100,17 @@ def get_user_id():
 
     finally:
         # secret_access_key_flag 写入文件
-        secret_access_key_conf = "/tmp/secret_access_key_conf"
+        secret_access_key_conf = "/opt/secret_access_key_conf"
         with open(secret_access_key_conf, "w+") as f1:
             f1.write("SECRET_ACCESS_KEY_FLAG %s" % (secret_access_key_flag))
 
         # access_key_id_flag 写入文件
-        access_key_id_conf = "/tmp/access_key_id_conf"
+        access_key_id_conf = "/opt/access_key_id_conf"
         with open(access_key_id_conf, "w+") as f1:
             f1.write("ACCESS_KEY_ID_FLAG %s" % (access_key_id_flag))
 
         # host_flag 写入文件
-        host_conf = "/tmp/host_conf"
+        host_conf = "/opt/host_conf"
         with open(host_conf, "w+") as f1:
             f1.write("HOST_FLAG %s" % (host_flag))
 
@@ -133,7 +133,7 @@ def check_zone_id_parameter(resource_type,user_id):
             zone_id_flag = False
 
     # zone_id_flag 写入文件
-    zone_id_conf = "/tmp/zone_id_conf"
+    zone_id_conf = "/opt/zone_id_conf"
     with open(zone_id_conf, "w+") as f1:
         f1.write("ZONE_ID_FLAG %s" % (zone_id_flag))
 
@@ -186,7 +186,7 @@ if __name__ == "__main__":
     print("user_id=%s" %(user_id))
 
     # user_id 写入文件
-    user_id_conf = "/tmp/user_id_conf"
+    user_id_conf = "/opt/user_id_conf"
     with open(user_id_conf, "w+") as f1:
         f1.write("USER_ID %s" % (user_id))
 

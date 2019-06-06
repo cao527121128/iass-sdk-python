@@ -180,7 +180,7 @@ if __name__ == "__main__":
 
 
     # g_private_ips_status 写入文件
-    private_ips_status_conf = "/tmp/private_ips_status_conf"
+    private_ips_status_conf = "/opt/private_ips_status_conf"
     with open(private_ips_status_conf, "w+") as f1:
         f1.write("PRIVATE_IPS_STATUS %s" % (g_private_ips_status))
 
