@@ -156,6 +156,11 @@ def terminate_instances(private_ips,vxnet_id):
     num = 0
     total_count = 0
     while ip_resources_is_released:
+
+        # terminate_instances
+        ret = conn.terminate_instances(instances=[g_instance_id], direct_cease=1)
+        print("ret==%s" % (ret))
+
         total_count = get_check_private_ip(vxnet_id,private_ips)
         print("num = %d" % (num))
         print("total_count = %d" % (total_count))
@@ -163,8 +168,9 @@ def terminate_instances(private_ips,vxnet_id):
             g_ip_resources_is_released = True
             break
         num = num + 1
-        if num > 300:
+        if num > 30:
             break
+        time.sleep(5)
 
     print("total_count = %d" % (total_count))
     print("g_ip_resources_is_released = %d" % (g_ip_resources_is_released))
@@ -256,11 +262,25 @@ if __name__ == "__main__":
     t.join()
 
 
+    if not g_instance_id:
+        # terminal_cloned_instance 写入文件  不存在private_ip对应的主机
+        terminal_cloned_instance_conf = "/opt/terminal_cloned_instance_conf"
+        with open(terminal_cloned_instance_conf, "w+") as f1:
+            f1.write("TERMINAL_CLONED_INSTANCE_IP None")
+
+
     #创建子线程--删除已经绑定private_ips的主机 释放ip资源
     if g_instance_id:
         t1 = threading.Thread(target=terminate_instances,args=(private_ips,vxnet_id,))
         t1.start()
         t1.join()
+
+    if g_ip_resources_is_released:
+        # terminal_cloned_instance 写入文件
+        terminal_cloned_instance_conf = "/opt/terminal_cloned_instance_conf"
+        with open(terminal_cloned_instance_conf, "w+") as f1:
+            f1.write("TERMINAL_CLONED_INSTANCE_IP %s" % (private_ips))
+
 
 
     print("主线程结束")
