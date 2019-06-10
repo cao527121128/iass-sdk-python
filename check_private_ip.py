@@ -80,7 +80,7 @@ def get_user_id():
     return user_id
 
 
-def check_private_ip(vxnet_id,private_ips):
+def check_private_ip(private_ips):
     print("子线程启动")
     print("check_private_ip")
     global conn
@@ -88,16 +88,15 @@ def check_private_ip(vxnet_id,private_ips):
 
     user_id = get_user_id()
     print("user_id==%s" %(user_id))
-    print("vxnet_id==%s" % (vxnet_id))
     print("private_ips==%s" % (private_ips))
 
-    ret = conn.describe_vxnet_resources(vxnet=vxnet_id, offset=0, limit=100, search_word=private_ips,owner=user_id)
+    ret = conn.describe_nics(offset=0, limit=100, search_word=private_ips, owner=user_id,status=["in-use", "available"])
     print("ret==%s" % (ret))
     # check ret_code
     ret_code = ret.get("ret_code")
     print("ret_code==%s" % (ret_code))
     if ret_code != 0:
-        print("describe_vxnet_resources failed")
+        print("describe_nics failed")
         exit(-1)
 
     #get total
@@ -167,7 +166,7 @@ if __name__ == "__main__":
     connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
 
     #创建子线程--查询私有网络IP是否可用
-    t = threading.Thread(target=check_private_ip,args=(vxnet_id,private_ips,))
+    t = threading.Thread(target=check_private_ip,args=(private_ips,))
     t.start()
     t.join()
 

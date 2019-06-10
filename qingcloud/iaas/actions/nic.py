@@ -31,6 +31,7 @@ class NicAction(object):
                       vxnet_type=None,
                       offset=None,
                       limit=None,
+                      search_word=None,
                       **ignore):
         """ Describe nics
 
@@ -41,11 +42,12 @@ class NicAction(object):
         @param vxnet_type: vxnet type, 0: unmanaged, 1: managed.
         @param offset: the starting offset of the returning results.
         @param limit: specify the number of the returning results.
+        @param search_word: the combined search column.
         """
         action = const.ACTION_DESCRIBE_NICS
         valid_keys = [
             "nics", "nic_name", "status",
-            "vxnets", "vxnet_type", "offset", "limit",
+            "vxnets", "vxnet_type", "offset", "limit","search_word"
         ]
         body = filter_out_none(locals(), valid_keys)
         if not self.conn.req_checker.check_params(
