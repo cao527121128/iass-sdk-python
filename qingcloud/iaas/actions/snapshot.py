@@ -118,7 +118,7 @@ class SnapshotAction(object):
 
         return self.conn.send_request(action, body)
 
-    def modify_snapshot_attributes(self, snapshot,
+    def modify_snapshot_attributes(self, snapshot=None,
                                    snapshot_name=None,
                                    description=None,
                                    **ignore):
@@ -139,7 +139,7 @@ class SnapshotAction(object):
 
         return self.conn.send_request(action, body)
 
-    def capture_instance_from_snapshot(self, snapshot,
+    def capture_instance_from_snapshot(self, snapshot=None,
                                        image_name=None,
                                        **ignore):
         """ Capture instance from snapshot.
@@ -158,7 +158,7 @@ class SnapshotAction(object):
 
         return self.conn.send_request(action, body)
 
-    def create_volume_from_snapshot(self, snapshot,
+    def create_volume_from_snapshot(self, snapshot=None,
                                     volume_name=None,
                                     **ignore):
         """ Create volume from snapshot.

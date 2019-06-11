@@ -341,6 +341,7 @@ def create_new_volumes(user_id):
         while num < 300:
             num = num + 1
             print("num == %d" %(num))
+            time.sleep(1)
             status = get_job_status(job_id)
             if status == "successful":
                 print("create_volumes successful")
