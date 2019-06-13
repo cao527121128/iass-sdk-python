@@ -94,7 +94,7 @@ def clone_instances(resource_id,vxnet_id,private_ips):
         #check clone_instances status
         status = "pending"
         num = 0
-        while status != "running" and num <=300:
+        while status != "running" and num <=180:
             time.sleep(1)
             status = get_instances_status()
             num = num + 1

@@ -103,7 +103,7 @@ def create_loadbalancer(vxnet_id,eip_id,private_ips):
     #check create_loadbalancer status
     status = "pending"
     num = 0
-    while status != "active" and num <= 300:
+    while status != "active" and num <= 120:
         time.sleep(1)
         status = get_loadbalancer_status()
         num = num + 1

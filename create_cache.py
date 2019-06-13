@@ -99,7 +99,7 @@ def create_cache(vxnet_id,private_ips):
     #check create_cache status
     status = "pending"
     num = 0
-    while status != "active" and num <= 300:
+    while status != "active" and num <= 120:
         time.sleep(1)
         status = get_cache_status()
         num = num + 1

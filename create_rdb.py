@@ -103,7 +103,7 @@ def create_rdb(vxnet_id,master_private_ip,topslave_private_ip):
         exit(-1)
     status = "pending"
     num = 0
-    while status != "active" and num <=300:
+    while status != "active" and num <=120:
         time.sleep(1)
         status = get_rdb_status()
         num = num + 1
