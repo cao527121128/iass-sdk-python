@@ -111,6 +111,7 @@ def get_instances_private_ip():
     global conn
     global g_cloned_instance_id
     ret = conn.describe_instances(instances=g_cloned_instance_id,verbose=1)
+    private_ip=""
 
     # check ret_code
     print("ret==%s" % (ret))
@@ -122,22 +123,22 @@ def get_instances_private_ip():
 
     matched_instance = ret['instance_set']
     print("matched_instance==%s"%(matched_instance))
+    if not matched_instance:
+        print("matched_instance is NULL")
+        exit(-1)
 
     print("************************************")
-
     wanted_instance = matched_instance[0]
     print("wanted_instance==%s" % (wanted_instance))
 
+    print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+    if wanted_instance.get("vxnets",0):
+        vxnets = wanted_instance['vxnets']
+        print("vxnets==%s"%(vxnets))
+        private_ip = vxnets[0].get('private_ip',0)
 
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    vxnets = wanted_instance['vxnets']
-    print("vxnets==%s" %(vxnets))
-
-    private_ip = vxnets[0].get('private_ip')
     print("private_ip=%s" % (private_ip))
     return private_ip
-
-
 
 
 def get_instances_status():
