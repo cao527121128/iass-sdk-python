@@ -184,16 +184,19 @@ def get_rdb_master_ip():
 
     matched_rdb = ret['rdb_set']
     print("matched_rdb==%s"%(matched_rdb))
+    if not matched_rdb:
+        print("describe_rdbs is NULL")
+        exit(-1)
 
     print("************************************")
-
     wanted_rdb = matched_rdb[0]
     print("wanted_rdb==%s" % (wanted_rdb))
 
     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    master_ip = wanted_rdb.get('master_ip')
+    master_ip = wanted_rdb.get('master_ip',0)
     print("master_ip=%s" % (master_ip))
     return master_ip
+
 
 def get_vxnet_id():
     print("get_vxnet_id")
