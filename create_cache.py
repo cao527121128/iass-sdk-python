@@ -148,6 +148,7 @@ def get_memcached_ip():
     global conn
     global g_cache_id
     ret = conn.describe_caches(caches=[g_cache_id], verbose=1)
+    memcached_ip = ""
 
     #check ret_code
     print("ret==%s" % (ret))
@@ -168,12 +169,14 @@ def get_memcached_ip():
     print("wanted_cache==%s" % (wanted_cache))
 
     print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-    nodes = wanted_cache['nodes']
-    print("nodes==%s"%(nodes))
+    if wanted_cache.get("nodes",0):
+        nodes = wanted_cache['nodes']
+        print("nodes==%s"%(nodes))
 
 
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    memcached_ip = nodes[0].get('private_ip')
+        print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+        memcached_ip = nodes[0].get('private_ip',0)
+
     print("memcached_ip=%s" % (memcached_ip))
     return memcached_ip
 
