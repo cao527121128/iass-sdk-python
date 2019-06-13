@@ -119,6 +119,7 @@ def get_loadbalancer_ip():
     print("get_loadbalancer_ip")
     global conn
     global g_loadbalancer_id
+    loadbalancer_ip=""
     ret = conn.describe_loadbalancers(loadbalancers=[g_loadbalancer_id],verbose=1)
 
     # check ret_code
@@ -130,21 +131,24 @@ def get_loadbalancer_ip():
         exit(-1)
 
     matched_loadbalancer = ret['loadbalancer_set']
+    print("matched_loadbalancer==%s"%(matched_loadbalancer))
+    if not matched_loadbalancer:
+        print("describe_loadbalancers is NULL")
+        exit(-1)
 
+    print("************************************")
     wanted_loadbalancer = matched_loadbalancer[0]
     print("wanted_loadbalancer==%s" % (wanted_loadbalancer))
 
-    print("************************************")
-    vxnet = wanted_loadbalancer.get("vxnet")
-    print("vxnet=%s"  %(vxnet))
+    print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+    if wanted_loadbalancer.get("vxnet",0):
+        vxnet = wanted_loadbalancer['vxnet']
+        print("vxnet==%s"%(vxnet))
+        print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+        loadbalancer_ip = vxnet.get('private_ip',0)
 
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    loadbalancer_ip = vxnet.get("private_ip")
     print("loadbalancer_ip=%s" % (loadbalancer_ip))
     return loadbalancer_ip
-
-
-
 
 def get_loadbalancer_status():
     print("get_loadbalancer_status")
