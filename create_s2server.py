@@ -306,7 +306,7 @@ def get_volume_id(user_id):
     matched_volume = ret['volume_set']
     if  not matched_volume:
         print("matched_volume is null")
-        exit(-1)
+        return None
 
     print("matched_volume == %s" % (matched_volume))
     print("************************************")
