@@ -2222,7 +2222,39 @@ class APIConnection(HttpConnection):
         if not self.req_checker.check_params(body,
                                              required_params=["vxnet","owner"],
                                              integer_params=[
-                                                 "offset", "limit", "verbose"]
+                                                 "offset", "limit", "verbose"],
+                                             ):
+            return None
+
+        return self.send_request(action, body)
+
+    def describe_app_versions(self,
+                               app_ids=None,
+                               version_ids=None,
+                               name=None,
+                               verbose=0,
+                               search_word=None,
+                               offset=None,
+                               limit=None,
+                               **ignore):
+        """ describe app versions filtered by condition.
+        @app_ids:The application ID can be one or more. Both app_ids and version_ids must have at least one
+        @version_ids: The application version ID can be one or more. Both app_ids and version_ids must have at least one.
+        @name: App name.
+        @param verbose: the number to specify the verbose level,
+                        larger the number, the more detailed information will be returned.
+        @param search_word: the search word.
+        @param offset: the starting offset of the returning results.
+        @param limit: specify the number of the returning results.
+        """
+        action = const.ACTION_DESCRIBE_APP_VERSIONS
+        valid_keys = ['app_ids','version_ids','name','search_word']
+        body = filter_out_none(locals(), valid_keys)
+        if not self.req_checker.check_params(body,
+                                             required_params=[],
+                                             integer_params=[
+                                                 "offset", "limit", "verbose"],
+                                             list_params=["app_ids","version_ids"]
                                              ):
             return None
 

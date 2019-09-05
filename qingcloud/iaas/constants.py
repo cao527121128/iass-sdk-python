@@ -385,3 +385,6 @@ ACTION_GET_QUOTA_LEFT = "GetQuotaLeft"
 
 # vxnet resources
 ACTION_DESCRIBE_VXNET_RESOURCES = "DescribeVxnetResources"
+
+# app
+ACTION_DESCRIBE_APP_VERSIONS = "DescribeAppVersions"
