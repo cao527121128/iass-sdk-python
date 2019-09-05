@@ -71,20 +71,29 @@ def create_loadbalancer(vxnet_id,eip_id,private_ips):
             print("private_ips is null")
             ret = conn.create_loadbalancer(
                 vxnet=vxnet_id,
-                loadbalancer_name='vdi-portal-loadbalancer'
+                loadbalancer_name='vdi-portal-loadbalancer',
+                loadbalancer_type=0,
+                node_count=2,
+                mode=1
             )
         else:
-            print("private_ips is not null")
+            print("private_ips is %s" %(private_ips))
             ret = conn.create_loadbalancer(
                 vxnet=vxnet_id,
                 private_ip=private_ips,
-                loadbalancer_name='vdi-portal-loadbalancer'
+                loadbalancer_name='vdi-portal-loadbalancer',
+                loadbalancer_type=0,
+                node_count=2,
+                mode=1
             )
     else:
         print("create_loadbalancer with eip_id=%s" % (eip_id))
         ret = conn.create_loadbalancer(
             eips=[eip_id],
-            loadbalancer_name='vdi-portal-loadbalancer'
+            loadbalancer_name='vdi-portal-loadbalancer',
+            loadbalancer_type=0,
+            node_count=2,
+            mode=1
     )
 
 
