@@ -2233,23 +2233,29 @@ class APIConnection(HttpConnection):
                                app_ids=None,
                                version_ids=None,
                                name=None,
+                               sort_key=None,
+                               owner=None,
                                verbose=0,
                                search_word=None,
                                offset=None,
                                limit=None,
+                               reverse=None,
                                **ignore):
         """ describe app versions filtered by condition.
-        @app_ids:The application ID can be one or more. Both app_ids and version_ids must have at least one
-        @version_ids: The application version ID can be one or more. Both app_ids and version_ids must have at least one.
-        @name: App name.
+        @param app_ids:The application ID can be one or more. Both app_ids and version_ids must have at least one
+        @param version_ids: The application version ID can be one or more. Both app_ids and version_ids must have at least one.
+        @param name: App name.
+        @param sort_key: the sort key, which defaults be create_time.
+        @param owner: Filter by user account, return only the resources of the specified account.
         @param verbose: the number to specify the verbose level,
                         larger the number, the more detailed information will be returned.
         @param search_word: the search word.
         @param offset: the starting offset of the returning results.
         @param limit: specify the number of the returning results.
+        @param reverse: 0 for Ascending order, 1 for Descending order.
         """
         action = const.ACTION_DESCRIBE_APP_VERSIONS
-        valid_keys = ['app_ids','version_ids','name','search_word','limit']
+        valid_keys = ['app_ids','version_ids','name','sort_key','owner','verbose','search_word','offset','limit','reverse']
         body = filter_out_none(locals(), valid_keys)
         if not self.req_checker.check_params(body,
                                              required_params=[],
@@ -2288,6 +2294,82 @@ class APIConnection(HttpConnection):
                                              integer_params=[
                                                  "offset", "limit", "verbose"],
                                              list_params=["app_type","status"]
+                                             ):
+            return None
+
+        return self.send_request(action, body)
+
+    def describe_clusters(self,
+                      clusters=None,
+                      apps=None,
+                      app_versions=None,
+                      cluster_name=None,
+                      status=None,
+                      verbose=1,
+                      search_word=None,
+                      offset=None,
+                      limit=None,
+                      owner=None,
+                      **ignore):
+        """ describe apps filtered by condition.
+        @clusters: clusters ID.
+        @apps: The application ID to which the cluster belongs, one or more.
+        @app_versions: The application version ID to which the cluster belongs, one or more.
+        @cluster_name: The name of the cluster.
+        @status: cluster status ["pending","active","stopped","suspended"].
+        @param verbose: the number to specify the verbose level,
+                        larger the number, the more detailed information will be returned.
+        @param search_word: the search word.
+        @param offset: the starting offset of the returning results.
+        @param limit: specify the number of the returning results.
+        @param owner: Filter by user account, return only the resources of the specified account.
+        """
+        action = const.ACTION_DESCRIBE_CLUSTERS
+        valid_keys = ['clusters','apps','app_versions','cluster_name','status','verbose','search_word','offset','limit','owner']
+        body = filter_out_none(locals(), valid_keys)
+        if not self.req_checker.check_params(body,
+                                             required_params=[],
+                                             integer_params=[
+                                                 "offset", "limit", "verbose"],
+                                             list_params=["clusters","apps","app_versions","status"]
+                                             ):
+            return None
+
+        return self.send_request(action, body)
+
+    def describe_dev_apps(self,
+                        app=None,
+                        app_type=None,
+                        status=None,
+                        sort_key=None,
+                        owner=None,
+                        verbose=0,
+                        search_word=None,
+                        offset=None,
+                        limit=None,
+                        reverse=None,
+                        **ignore):
+        """ describe app versions filtered by condition.
+        @param app:The application ID can be one or more. Both app_ids and version_ids must have at least one
+        @param app_type: ["cluster","image","web"].
+        @param status: []
+        @param sort_key: the sort key, which defaults be create_time.
+        @param owner: Filter by user account, return only the resources of the specified account.
+        @param verbose: the number to specify the verbose level,
+                        larger the number, the more detailed information will be returned.
+        @param search_word: the search word.
+        @param offset: the starting offset of the returning results.
+        @param limit: specify the number of the returning results.
+        @param reverse: 0 for Ascending order, 1 for Descending order.
+        """
+        action = const.ACTION_DESCRIBE_DEV_APPS
+        valid_keys = ['app','app_type','status','sort_key','owner','verbose','search_word','offset','limit','reverse']
+        body = filter_out_none(locals(), valid_keys)
+        if not self.req_checker.check_params(body,
+                                             required_params=[],
+                                             integer_params=[
+                                                 "offset", "limit", "verbose"],
+                                             list_params=["app_type"]
                                              ):
             return None
 

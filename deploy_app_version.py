@@ -129,13 +129,33 @@ def deploy_app_version(app_ids):
     if app_ids and not isinstance(app_ids, list):
         app_ids = [app_ids]
 
-    # describe_apps
+    # DescribeApps
     action = const.ACTION_DESCRIBE_APPS
     print("action == %s" % (action))
-    ret = conn.describe_apps(app_type=["cluster"],app=app_ids[0])
-    print("describe_apps ret == %s" % (ret))
+    ret = conn.describe_apps(app=app_ids[0],app_type=["cluster"])
+    # print("describe_apps ret == %s" % (ret))
     check_ret_code(ret, action)
 
+    # DescribeClusters
+    action = const.ACTION_DESCRIBE_CLUSTERS
+    print("action == %s" % (action))
+    ret = conn.describe_clusters(apps=app_ids,clusters=["cl-73h9g7zc"])
+    # print("describe_clusters ret == %s" % (ret))
+    check_ret_code(ret, action)
+
+    # DescribeAppVersions
+    action = const.ACTION_DESCRIBE_APP_VERSIONS
+    print("action == %s" % (action))
+    ret = conn.describe_app_versions(app_ids=app_ids,status=["active"],limit=1)
+    # print("describe_app_versions ret == %s" % (ret))
+    check_ret_code(ret, action)
+
+    # DescribeDevApps   DescribeApps and DescribeDevApps is the same
+    action = const.ACTION_DESCRIBE_DEV_APPS
+    print("action == %s" % (action))
+    ret = conn.describe_dev_apps(app=app_ids[0],app_type=["cluster"])
+    # print("describe_dev_apps ret == %s" % (ret))
+    check_ret_code(ret, action)
 
     # # describe_app_versions
     # print("describe_app_versions app_ids =%s" % (app_ids))
