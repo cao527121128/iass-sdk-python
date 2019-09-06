@@ -387,3 +387,4 @@ ACTION_DESCRIBE_VXNET_RESOURCES = "DescribeVxnetResources"
 
 # app
 ACTION_DESCRIBE_APP_VERSIONS = "DescribeAppVersions"
+ACTION_DESCRIBE_APPS = "DescribeApps"

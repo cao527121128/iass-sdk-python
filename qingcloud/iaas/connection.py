@@ -2249,13 +2249,45 @@ class APIConnection(HttpConnection):
         @param limit: specify the number of the returning results.
         """
         action = const.ACTION_DESCRIBE_APP_VERSIONS
-        valid_keys = ['app_ids','version_ids','name','search_word']
+        valid_keys = ['app_ids','version_ids','name','search_word','limit']
         body = filter_out_none(locals(), valid_keys)
         if not self.req_checker.check_params(body,
                                              required_params=[],
                                              integer_params=[
                                                  "offset", "limit", "verbose"],
                                              list_params=["app_ids","version_ids"]
+                                             ):
+            return None
+
+        return self.send_request(action, body)
+
+    def describe_apps(self,
+                      app_type=None,
+                      status=None,
+                      app=None,
+                      verbose=1,
+                      search_word=None,
+                      offset=None,
+                      limit=None,
+                      **ignore):
+        """ describe apps filtered by condition.
+        @app_type:  app_type is cluster or web. default is cluster
+        @status: app status active, suspended.
+        @app: app_id.
+        @param verbose: the number to specify the verbose level,
+                        larger the number, the more detailed information will be returned.
+        @param search_word: the search word.
+        @param offset: the starting offset of the returning results.
+        @param limit: specify the number of the returning results.
+        """
+        action = const.ACTION_DESCRIBE_APPS
+        valid_keys = ['app_type','status','app','verbose','search_word','offset','limit']
+        body = filter_out_none(locals(), valid_keys)
+        if not self.req_checker.check_params(body,
+                                             required_params=[],
+                                             integer_params=[
+                                                 "offset", "limit", "verbose"],
+                                             list_params=["app_type","status"]
                                              ):
             return None
 

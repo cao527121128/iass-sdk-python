@@ -12,6 +12,7 @@ import time
 from optparse import OptionParser
 import sys
 import os
+import qingcloud.iaas.constants as const
 
 # global
 zone_id = None
@@ -22,7 +23,6 @@ host = None
 port = None
 protocol = None
 vxnet_id = None
-g_rdb_id = None
 
 def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
     print("connect_iaas")
@@ -45,153 +45,6 @@ def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
     if not user_id:
         print("user_id is null")
         exit(-1)
-
-def create_rdb(vxnet_id,master_private_ip,topslave_private_ip):
-    print("子线程启动")
-    print("create_rdb")
-    global conn
-    global g_rdb_id
-    print("master_private_ip == %s" %(master_private_ip))
-    print("topslave_private_ip == %s" % (topslave_private_ip))
-    if not master_private_ip:
-        print("private_ips is null")
-        ret = conn.create_rdb(
-            # vxnet='vxnet-glp08w9',
-            vxnet=vxnet_id,
-            rdb_engine='psql',
-            engine_version='9.4',
-            rdb_username='yunify',
-            rdb_password='Zhu88jie',
-            rdb_type=2,
-            storage_size=10,
-            rdb_name='vdi-portal-postgresql'
-        )
-    else:
-        print("private_ips is not null")
-        #private_ips = [{“master”:”192.168.100.14”,”topslave”:”192.168.100.17”}]
-        private_ips_list = {"master":master_private_ip,"topslave":topslave_private_ip}
-        print("private_ips_list == %s" %(private_ips_list))
-        ret = conn.create_rdb(
-            vxnet=vxnet_id,
-            rdb_engine='psql',
-            engine_version='9.4',
-            rdb_username='yunify',
-            rdb_password='Zhu88jie',
-            rdb_type=2,
-            storage_size=10,
-            rdb_name='vdi-portal-postgresql',
-            private_ips=[private_ips_list]
-        )
-    print("ret==%s" % (ret))
-    #check ret_code
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code!=0:
-        print("create_rdb failed")
-        exit(-1)
-
-    g_rdb_id = ret.get("rdb")
-    print("g_rdb_id=%s" %(g_rdb_id))
-
-    if not g_rdb_id:
-        print("create rdb fail")
-        exit(-1)
-    status = "pending"
-    num = 0
-    while status != "active" and num <=120:
-        time.sleep(1)
-        status = get_rdb_status()
-        num = num + 1
-        print("num=%d" %(num))
-    if status!="active":
-        print("create_rdb timeout")
-        create_rdb_status =  "False"
-        # create_rdb_status 写入文件
-        create_rdb_status_conf = "/opt/create_rdb_status_conf"
-        with open(create_rdb_status_conf, "w+") as f1:
-            f1.write("CREATE_RDB_STATUS %s" % (create_rdb_status))
-        exit(-1)
-
-    #create_rdb ok
-    create_rdb_status = "True"
-    # create_rdb_status 写入文件
-    create_rdb_status_conf = "/opt/create_rdb_status_conf"
-    with open(create_rdb_status_conf, "w+") as f1:
-        f1.write("CREATE_RDB_STATUS %s" % (create_rdb_status))
-
-    #master_ip 写入文件
-    master_ip_conf = "/opt/master_ip_conf"
-    ret = get_rdb_master_ip()
-    with open(master_ip_conf, "w+") as f1:
-        f1.write("POSTGRESQL_ADDRESS %s" %(ret))
-
-    #user_id 写入文件
-    user_id_conf = "/opt/user_id_conf"
-    ret = get_user_id()
-    with open(user_id_conf, "w+") as f1:
-        f1.write("USER_ID %s" %(ret))
-    print("子线程结束")
-
-
-
-
-def get_rdb_status():
-    print("get_rdb_status")
-    global conn
-    global g_rdb_id
-    ret = conn.describe_rdbs(rdbs=[g_rdb_id])
-    print("ret==%s" % (ret))
-    # check ret_code
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_rdbs failed")
-        exit(-1)
-
-    matched_rdb = ret['rdb_set']
-    print("matched_rdb==%s"%(matched_rdb))
-
-    print("************************************")
-
-    wanted_rdb = matched_rdb[0]
-    print("wanted_rdb==%s" % (wanted_rdb))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    status = wanted_rdb.get('status')
-    master_ip = wanted_rdb.get('master_ip')
-    print("status=%s master_ip=%s" % (status, master_ip))
-    return status
-
-
-
-def get_rdb_master_ip():
-    print("get_rdb_master_ip")
-    global conn
-    global g_rdb_id
-    ret = conn.describe_rdbs(rdbs=[g_rdb_id])
-    print("ret==%s" % (ret))
-    # check ret_code
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_rdbs failed")
-        exit(-1)
-
-    matched_rdb = ret['rdb_set']
-    print("matched_rdb==%s"%(matched_rdb))
-    if not matched_rdb:
-        print("describe_rdbs is NULL")
-        exit(-1)
-
-    print("************************************")
-    wanted_rdb = matched_rdb[0]
-    print("wanted_rdb==%s" % (wanted_rdb))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    master_ip = wanted_rdb.get('master_ip',0)
-    print("master_ip=%s" % (master_ip))
-    return master_ip
-
 
 def get_vxnet_id():
     print("get_vxnet_id")
@@ -218,7 +71,6 @@ def get_vxnet_id():
     vxnet_id = wanted_vxnet.get('vxnet_id')
     print("vxnet_id=%s" % (vxnet_id))
     return vxnet_id
-
 
 def get_user_id():
     print("get_user_id")
@@ -247,7 +99,67 @@ def get_user_id():
     print("user_id=%s" % (user_id))
     return user_id
 
+def explode_array(list_str, separator = ","):
+    ''' explode list string into array '''
+    if list_str is None:
+        return None
+    result = []
+    disk_list = list_str.split(separator)
+    for disk in disk_list:
+        disk = disk.strip()
+        if disk != "":
 
+            result.append(disk)
+    return result
+
+def check_ret_code(ret,action):
+    ret_code = ret.get("ret_code")
+    print("ret_code==%s" % (ret_code))
+    if ret_code != 0:
+        print("%s failed" %(action))
+        exit(-1)
+
+
+def deploy_app_version(app_ids):
+    print("子线程启动")
+    print("deploy_app_version")
+    global conn
+    print("app_ids == %s" % (app_ids))
+
+    if app_ids and not isinstance(app_ids, list):
+        app_ids = [app_ids]
+
+    # describe_apps
+    action = const.ACTION_DESCRIBE_APPS
+    print("action == %s" % (action))
+    ret = conn.describe_apps(app_type=["cluster"],app=app_ids[0])
+    print("describe_apps ret == %s" % (ret))
+    check_ret_code(ret, action)
+
+
+    # # describe_app_versions
+    # print("describe_app_versions app_ids =%s" % (app_ids))
+    # ret = conn.describe_app_versions(app_ids=app_ids,limit=1)
+    # # check ret_code
+    # print("ret==%s" % (ret))
+    # ret_code = ret.get("ret_code")
+    # print("ret_code==%s" % (ret_code))
+    # if ret_code != 0:
+    #     print("describe_app_versions failed")
+    #     exit(-1)
+    #
+    # #get version_id
+    # version_set = ret['version_set']
+    # print("version_set==%s" % (version_set))
+    # if version_set is None or len(version_set) == 0:
+    #     print("describe_app_versions version_set is None")
+    #     exit(-1)
+    #
+    # for version in version_set:
+    #     version_id = version.get("version_id")
+    # print("version_id == %s" %(version_id))
+
+    print("子线程结束")
 
 if __name__ == "__main__":
     print("主线程启动")
@@ -256,6 +168,7 @@ if __name__ == "__main__":
     opt_parser = OptionParser()
     opt_parser.add_option("-z", "--zone_id", action="store", type="string", \
                           dest="zone_id", help='zone id', default="")
+
     opt_parser.add_option("-a", "--access_key_id", action="store", type="string", \
                           dest="access_key_id", help='access key id', default="")
 
@@ -270,18 +183,14 @@ if __name__ == "__main__":
 
     opt_parser.add_option("-P", "--protocol", action="store", type="string", \
                           dest="protocol", help='protocol', default="")
+
     opt_parser.add_option("-v", "--vxnet_id", action="store", type="string", \
                           dest="vxnet_id", help='vxnet id', default="")
 
-    opt_parser.add_option("-m", "--master_private_ip", action="store", type="string", \
-                          dest="master_private_ip", help='master private ip', default="")
-
-    opt_parser.add_option("-t", "--topslave_private_ip", action="store", type="string", \
-                          dest="topslave_private_ip", help='topslave private ip', default="")
+    opt_parser.add_option("-A", "--app_ids", action="store", type="string", \
+                          dest="app_ids", help='appcenter app_ids', default="")
 
     (options, _) = opt_parser.parse_args(sys.argv)
-
-
 
     zone_id = options.zone_id
     access_key_id = options.access_key_id
@@ -290,8 +199,8 @@ if __name__ == "__main__":
     port = options.port
     protocol = options.protocol
     vxnet_id = options.vxnet_id
-    master_private_ip = options.master_private_ip
-    topslave_private_ip = options.topslave_private_ip
+    app_ids = explode_array(options.app_ids or "")
+
     print("zone_id:%s" % (zone_id))
     print("access_key_id:%s" % (access_key_id))
     print("secret_access_key:%s" % (secret_access_key))
@@ -299,19 +208,15 @@ if __name__ == "__main__":
     print("port:%s" % (port))
     print("protocol:%s" % (protocol))
     print("vxnet_id:%s" % (vxnet_id))
-    print("master_private_ip:%s" % (master_private_ip))
-    print("topslave_private_ip:%s" % (topslave_private_ip))
-
+    print("app_ids:%s" % (app_ids))
 
     #连接iaas后台
     connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
 
-
-    #创建子线程执行创建数据库的操作
-    t = threading.Thread(target=create_rdb,args=(vxnet_id,master_private_ip,topslave_private_ip,))
+    #创建子线程通过appcenter创建postgresql集群 部署指定数据库应用版本的集群
+    t = threading.Thread(target=deploy_app_version,args=(app_ids,))
     t.start()
     t.join()
-
 
     print("主线程结束")
 
