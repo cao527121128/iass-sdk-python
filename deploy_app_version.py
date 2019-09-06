@@ -13,6 +13,7 @@ from optparse import OptionParser
 import sys
 import os
 import qingcloud.iaas.constants as const
+import json
 
 # global
 zone_id = None
@@ -120,64 +121,164 @@ def check_ret_code(ret,action):
         exit(-1)
 
 
-def deploy_app_version(app_ids):
+def deploy_app_version(app_ids,vxnet_id,zone_id):
     print("子线程启动")
     print("deploy_app_version")
     global conn
-    print("app_ids == %s" % (app_ids))
+    user_id = get_user_id()
 
     if app_ids and not isinstance(app_ids, list):
         app_ids = [app_ids]
+    app_type = ["cluster"]
+    cluster_id = ["cl-73h9g7zc"]
+    status = ["active"]
+    global_uuid = "32082219583369087"
+    print("app_ids == %s" % (app_ids))
+    print("app_type == %s" % (app_type))
+    print("cluster_id == %s" % (cluster_id))
+    print("status == %s" % (status))
+    print("vxnet_id == %s" % (vxnet_id))
+    print("global_uuid == %s" % (global_uuid))
+    print("zone_id == %s" % (zone_id))
+
 
     # DescribeApps
     action = const.ACTION_DESCRIBE_APPS
     print("action == %s" % (action))
-    ret = conn.describe_apps(app=app_ids[0],app_type=["cluster"])
+    ret = conn.describe_apps(app=app_ids[0],app_type=app_type)
     # print("describe_apps ret == %s" % (ret))
     check_ret_code(ret, action)
 
     # DescribeClusters
     action = const.ACTION_DESCRIBE_CLUSTERS
     print("action == %s" % (action))
-    ret = conn.describe_clusters(apps=app_ids,clusters=["cl-73h9g7zc"])
+    ret = conn.describe_clusters(apps=app_ids,clusters=cluster_id)
     # print("describe_clusters ret == %s" % (ret))
     check_ret_code(ret, action)
 
     # DescribeAppVersions
     action = const.ACTION_DESCRIBE_APP_VERSIONS
     print("action == %s" % (action))
-    ret = conn.describe_app_versions(app_ids=app_ids,status=["active"],limit=1)
+    ret = conn.describe_app_versions(app_ids=app_ids,status=status,limit=1)
     # print("describe_app_versions ret == %s" % (ret))
     check_ret_code(ret, action)
-
-    # DescribeDevApps   DescribeApps and DescribeDevApps is the same
-    action = const.ACTION_DESCRIBE_DEV_APPS
-    print("action == %s" % (action))
-    ret = conn.describe_dev_apps(app=app_ids[0],app_type=["cluster"])
-    # print("describe_dev_apps ret == %s" % (ret))
-    check_ret_code(ret, action)
-
-    # # describe_app_versions
-    # print("describe_app_versions app_ids =%s" % (app_ids))
-    # ret = conn.describe_app_versions(app_ids=app_ids,limit=1)
-    # # check ret_code
-    # print("ret==%s" % (ret))
-    # ret_code = ret.get("ret_code")
-    # print("ret_code==%s" % (ret_code))
-    # if ret_code != 0:
-    #     print("describe_app_versions failed")
-    #     exit(-1)
-    #
-    # #get version_id
-    # version_set = ret['version_set']
+    version_set = ret['version_set']
     # print("version_set==%s" % (version_set))
-    # if version_set is None or len(version_set) == 0:
-    #     print("describe_app_versions version_set is None")
-    #     exit(-1)
-    #
-    # for version in version_set:
-    #     version_id = version.get("version_id")
-    # print("version_id == %s" %(version_id))
+    if version_set is None or len(version_set) == 0:
+        print("describe_app_versions version_set is None")
+        exit(-1)
+    for version in version_set:
+        version_id = version.get("version_id")
+        resource_kit = version.get("resource_kit")
+    print("version_id == %s" %(version_id))
+    print("resource_kit == %s" % (resource_kit))
+
+    #DeployAppVersion
+    action = const.ACTION_DEPLOY_APP_VERSION
+    print("action == %s" % (action))
+    # conf = {"cluster": {"name":"PostgreSQL11 Cluster","description":"test-001","auto_backup_time":"-1","pg":{"cpu":2,"memory":4096,"instance_class":0,"volume_size":50},
+    #                   "ri":{"cpu":2,"memory":4096,"instance_class":1,"count":0,"volume_size":20},
+    #                   "pgpool":{"cpu":2,"memory":4096,"instance_class":1,"count":0,"volume_size":20},"vxnet":"vxnet-za3ludg","global_uuid":"32082219583369087"},
+    #         "version":"appv-7f3zbdc5","resource_group":"Standard","zone":"gd2a",
+    #         "env":{"db_name":"vdi","user_name":"yunify","password":"Zhu88jie",
+    #         "pg_version":"11","serialize_accept":"off","pgpool_port":9999,"child_life_time":300,"connection_life_time":600,"client_idle_limit":0,
+    #         "max_pool":2,"num_init_children":100,"sync_stream_repl":"Yes","load_read_request_to_primary":"Yes","auto_failover":"Yes","max_connections":"auto-optimized-conns",
+    #         "wal_buffers":"8MB","work_mem":"4MB","maintenance_work_mem":"64MB","effective_cache_size":"4GB","wal_keep_segments":256,"checkpoint_timeout":"5min","autovacuum":"on",
+    #         "vacuum_cost_delay":0,"autovacuum_naptime":"1min","vacuum_cost_limit":200,"bgwriter_delay":200,"bgwriter_lru_multiplier":2,"wal_writer_delay":200,"fsync":"on",
+    #         "commit_delay":0,"commit_siblings":5,"enable_bitmapscan":"on","enable_seqscan":"on","full_page_writes":"on","log_min_messages":"warning","deadlock_timeout":1,
+    #         "log_lock_waits":"off","log_min_duration_statement":-1,"temp_buffers":"8MB","max_prepared_transactions":0,"max_wal_senders":10,"bgwriter_lru_maxpages":100,
+    #         "log_statement":"none","shared_preload_libraries":"passwordcheck","wal_level":"replica","shared_buffers":"auto-optimized-sharedbuffers","jit":"off"},
+    #         "toggle_passwd":"on"}
+
+    conf = {
+        "cluster": {
+            "name": "PostgreSQL11 Cluster",
+            "description": "vdi-portal-postgresql",
+            "auto_backup_time": "-1",
+            "pg": {
+                "cpu": 2,
+                "memory": 4096,
+                "instance_class": 0,
+                "volume_size": 50
+            },
+            "ri": {
+                "cpu": 2,
+                "memory": 4096,
+                "instance_class": 1,
+                "count": 0,
+                "volume_size": 20
+            },
+            "pgpool": {
+                "cpu": 2,
+                "memory": 4096,
+                "instance_class": 1,
+                "count": 0,
+                "volume_size": 20
+            },
+            "vxnet": vxnet_id,
+            "global_uuid": global_uuid
+        },
+        "version": version_id,
+        "resource_group": "Standard",
+        "zone": zone_id,
+        "env": {
+            "db_name": "vdi",
+            "user_name": "yunify",
+            "password": "Zhu88jie",
+            "pg_version": "11",
+            "serialize_accept": "off",
+            "pgpool_port": 9999,
+            "child_life_time": 300,
+            "connection_life_time": 600,
+            "client_idle_limit": 0,
+            "max_pool": 2,
+            "num_init_children": 100,
+            "sync_stream_repl": "Yes",
+            "load_read_request_to_primary": "Yes",
+            "auto_failover": "Yes",
+            "max_connections": "auto-optimized-conns",
+            "wal_buffers": "8MB",
+            "work_mem": "4MB",
+            "maintenance_work_mem": "64MB",
+            "effective_cache_size": "4GB",
+            "wal_keep_segments": 256,
+            "checkpoint_timeout": "5min",
+            "autovacuum": "on",
+            "vacuum_cost_delay": 0,
+            "autovacuum_naptime": "1min",
+            "vacuum_cost_limit": 200,
+            "bgwriter_delay": 200,
+            "bgwriter_lru_multiplier": 2,
+            "wal_writer_delay": 200,
+            "fsync": "on",
+            "commit_delay": 0,
+            "commit_siblings": 5,
+            "enable_bitmapscan": "on",
+            "enable_seqscan": "on",
+            "full_page_writes": "on",
+            "log_min_messages": "warning",
+            "deadlock_timeout": 1,
+            "log_lock_waits": "off",
+            "log_min_duration_statement": -1,
+            "temp_buffers": "8MB",
+            "max_prepared_transactions": 0,
+            "max_wal_senders": 10,
+            "bgwriter_lru_maxpages": 100,
+            "log_statement": "none",
+            "shared_preload_libraries": "passwordcheck",
+            "wal_level": "replica",
+            "shared_buffers": "auto-optimized-sharedbuffers",
+            "jit": "off"
+        },
+        "toggle_passwd": "on"
+    }
+
+    # conf python dictionary conversion JSON format
+    jconf = json.dumps(conf)
+    print("jconf == %s" % (jconf))
+    ret = conn.deploy_app_version(app_type=app_type,app_id=app_ids,version_id=version_id,conf=jconf,charge_mode="elastic",debug=0,owner=user_id)
+    print("deploy_app_version ret == %s" % (ret))
+    check_ret_code(ret, action)
 
     print("子线程结束")
 
@@ -234,7 +335,7 @@ if __name__ == "__main__":
     connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
 
     #创建子线程通过appcenter创建postgresql集群 部署指定数据库应用版本的集群
-    t = threading.Thread(target=deploy_app_version,args=(app_ids,))
+    t = threading.Thread(target=deploy_app_version,args=(app_ids,vxnet_id,zone_id,))
     t.start()
     t.join()
 

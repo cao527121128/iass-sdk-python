@@ -2374,3 +2374,28 @@ class APIConnection(HttpConnection):
             return None
 
         return self.send_request(action, body)
+
+    def deploy_app_version(self,
+                          app_type=None,
+                          app_id=None,
+                          version_id=None,
+                          conf=None,
+                          **ignore):
+        """ Deploy a cluster of the specified application version.
+        @param app_type: ["cluster","image","web"].
+        @param app_id:The application ID.
+        @param version_id: The version ID of the app to be deployed.
+        @param conf: Cluster configuration information (JSON format for escaping and removing spaces).
+        """
+        action = const.ACTION_DEPLOY_APP_VERSION
+        valid_keys = ['app_type', 'app_id', 'version_id', 'conf']
+        body = filter_out_none(locals(), valid_keys)
+        if not self.req_checker.check_params(body,
+                                             required_params=["version_id"],
+                                             integer_params=[],
+                                             list_params=[]
+                                             ):
+            return None
+
+        return self.send_request(action, body)
+
