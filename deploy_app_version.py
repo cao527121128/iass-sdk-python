@@ -50,27 +50,21 @@ def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
 def get_vxnet_id():
     print("get_vxnet_id")
     global conn
-    #查看基础网络vxnet_id
+
+    # DescribeVxnets
+    action = const.ACTION_DESCRIBE_VXNETS
+    print("action == %s" % (action))
     ret = conn.describe_vxnets(limit=1, vxnet_type=2)
-    print("ret==%s" % (ret))
-    # check ret_code
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_vxnets failed")
+    print("describe_vxnets ret == %s" % (ret))
+    check_ret_code(ret, action)
+    vxnet_set = ret['vxnet_set']
+    if vxnet_set is None or len(vxnet_set) == 0:
+        print("describe_vxnets vxnet_set is None")
         exit(-1)
+    for vxnet in vxnet_set:
+        vxnet_id = vxnet.get("vxnet_id")
 
-    matched_vxnet = ret['vxnet_set']
-    print("matched_vxnet==%s" % (matched_vxnet))
-
-    print("************************************")
-
-    wanted_vxnet = matched_vxnet[0]
-    print("wanted_vxnet==%s" % (wanted_vxnet))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    vxnet_id = wanted_vxnet.get('vxnet_id')
-    print("vxnet_id=%s" % (vxnet_id))
+    print("vxnet_id == %s" % (vxnet_id))
     return vxnet_id
 
 def get_user_id():
@@ -226,20 +220,6 @@ def deploy_app_version(app_ids,vxnet_id,zone_id):
     #DeployAppVersion
     action = const.ACTION_DEPLOY_APP_VERSION
     print("action == %s" % (action))
-    # conf = {"cluster": {"name":"PostgreSQL11 Cluster","description":"test-001","auto_backup_time":"-1","pg":{"cpu":2,"memory":4096,"instance_class":0,"volume_size":50},
-    #                   "ri":{"cpu":2,"memory":4096,"instance_class":1,"count":0,"volume_size":20},
-    #                   "pgpool":{"cpu":2,"memory":4096,"instance_class":1,"count":0,"volume_size":20},"vxnet":"vxnet-za3ludg","global_uuid":"32082219583369087"},
-    #         "version":"appv-7f3zbdc5","resource_group":"Standard","zone":"gd2a",
-    #         "env":{"db_name":"vdi","user_name":"yunify","password":"Zhu88jie",
-    #         "pg_version":"11","serialize_accept":"off","pgpool_port":9999,"child_life_time":300,"connection_life_time":600,"client_idle_limit":0,
-    #         "max_pool":2,"num_init_children":100,"sync_stream_repl":"Yes","load_read_request_to_primary":"Yes","auto_failover":"Yes","max_connections":"auto-optimized-conns",
-    #         "wal_buffers":"8MB","work_mem":"4MB","maintenance_work_mem":"64MB","effective_cache_size":"4GB","wal_keep_segments":256,"checkpoint_timeout":"5min","autovacuum":"on",
-    #         "vacuum_cost_delay":0,"autovacuum_naptime":"1min","vacuum_cost_limit":200,"bgwriter_delay":200,"bgwriter_lru_multiplier":2,"wal_writer_delay":200,"fsync":"on",
-    #         "commit_delay":0,"commit_siblings":5,"enable_bitmapscan":"on","enable_seqscan":"on","full_page_writes":"on","log_min_messages":"warning","deadlock_timeout":1,
-    #         "log_lock_waits":"off","log_min_duration_statement":-1,"temp_buffers":"8MB","max_prepared_transactions":0,"max_wal_senders":10,"bgwriter_lru_maxpages":100,
-    #         "log_statement":"none","shared_preload_libraries":"passwordcheck","wal_level":"replica","shared_buffers":"auto-optimized-sharedbuffers","jit":"off"},
-    #         "toggle_passwd":"on"}
-
     conf = {
         "cluster": {
             "name": "PostgreSQL11 Cluster",
