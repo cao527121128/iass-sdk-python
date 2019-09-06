@@ -2398,3 +2398,23 @@ class APIConnection(HttpConnection):
             return None
 
         return self.send_request(action, body)
+
+    def get_global_unique_id(self,
+                          owner=None,
+                          zone=None,
+                          **ignore):
+        """ get global unique_id.
+        @param owner: Filter by user account, return only the resources of the specified account.
+        @param zone: zone_id.
+        """
+        action = const.ACTION_GET_GLOBAL_UNIQUE_ID
+        valid_keys = ['owner', 'zone']
+        body = filter_out_none(locals(), valid_keys)
+        if not self.req_checker.check_params(body,
+                                             required_params=["owner","zone"],
+                                             integer_params=[],
+                                             list_params=[]
+                                             ):
+            return None
+
+        return self.send_request(action, body)

@@ -173,6 +173,15 @@ def deploy_app_version(app_ids,vxnet_id,zone_id):
     print("version_id == %s" %(version_id))
     print("resource_kit == %s" % (resource_kit))
 
+    # GetGlobalUniqueId
+    action = const.ACTION_GET_GLOBAL_UNIQUE_ID
+    print("action == %s" % (action))
+    ret = conn.get_global_unique_id(owner=user_id,zone=zone_id)
+    # print("get_global_unique_id ret == %s" % (ret))
+    check_ret_code(ret, action)
+    global_uuid = ret['uuid']
+    print("global_uuid == %s" % (global_uuid))
+
     #DeployAppVersion
     action = const.ACTION_DEPLOY_APP_VERSION
     print("action == %s" % (action))
@@ -273,7 +282,7 @@ def deploy_app_version(app_ids,vxnet_id,zone_id):
         "toggle_passwd": "on"
     }
 
-    # conf python dictionary conversion JSON format
+    #conf python dictionary conversion JSON format
     jconf = json.dumps(conf)
     print("jconf == %s" % (jconf))
     ret = conn.deploy_app_version(app_type=app_type,app_id=app_ids,version_id=version_id,conf=jconf,charge_mode="elastic",debug=0,owner=user_id)
