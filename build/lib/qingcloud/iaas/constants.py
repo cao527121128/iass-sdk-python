@@ -386,6 +386,9 @@ ACTION_GET_QUOTA_LEFT = "GetQuotaLeft"
 ACTION_DESCRIBE_VXNET_RESOURCES = "DescribeVxnetResources"
 
 # app
+POSTGRESQL_APP_IDS = "app-gtusp816"
+MEMCACHED_APP_IDS = "app-xsrhlw0l"
+
 ACTION_DESCRIBE_APP_VERSIONS = "DescribeAppVersions"
 ACTION_DESCRIBE_APPS = "DescribeApps"
 ACTION_DESCRIBE_CLUSTERS = "DescribeClusters"
@@ -393,3 +396,4 @@ ACTION_DESCRIBE_DEV_APPS = "DescribeDevApps"
 ACTION_DEPLOY_APP_VERSION = "DeployAppVersion"
 ACTION_GET_GLOBAL_UNIQUE_ID = "GetGlobalUniqueId"
 ACTION_DESCRIBE_CLUSTER_DISPLAY_TABS = "DescribeClusterDisplayTabs"
+ACTION_DESCRIBE_CLUSTER_NODES = "DescribeClusterNodes"
