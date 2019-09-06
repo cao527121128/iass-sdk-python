@@ -77,27 +77,21 @@ def get_user_id():
     print("get_user_id")
     global conn
     global access_key_id
-    #查看access_keys详情
+
+    # DescribeAccessKeys
+    action = const.ACTION_DESCRIBE_ACCESS_KEYS
+    print("action == %s" % (action))
     ret = conn.describe_access_keys(access_keys=[access_key_id])
-    print("ret==%s" % (ret))
-    # check ret_code
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_access_keys failed")
+    print("describe_access_keys ret == %s" % (ret))
+    check_ret_code(ret, action)
+    access_key_set = ret['access_key_set']
+    if access_key_set is None or len(access_key_set) == 0:
+        print("describe_access_keys access_key_set is None")
         exit(-1)
+    for access_key in access_key_set:
+        user_id = access_key.get("owner")
 
-    matched_access_key = ret['access_key_set']
-    print("matched_access_key==%s" % (matched_access_key))
-
-    print("************************************")
-
-    wanted_access_key = matched_access_key[0]
-    print("wanted_access_key==%s" % (wanted_access_key))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    user_id = wanted_access_key.get('owner')
-    print("user_id=%s" % (user_id))
+    print("user_id == %s" % (user_id))
     return user_id
 
 def explode_array(list_str, separator = ","):
@@ -120,6 +114,53 @@ def check_ret_code(ret,action):
         print("%s failed" %(action))
         exit(-1)
 
+def get_job_status(job_id):
+    print("get_job_status job_id == %s" %(job_id))
+    global conn
+    if job_id and not isinstance(job_id, list):
+        job_id = [job_id]
+
+    # DescribeJobs
+    action = const.ACTION_DESCRIBE_JOBS
+    print("action == %s" % (action))
+    ret = conn.describe_jobs(jobs=job_id, verbose=1)
+    check_ret_code(ret, action)
+    job_set = ret['job_set']
+    if job_set is None or len(job_set) == 0:
+        print("describe_jobs job_set is None")
+        return None
+    for job in job_set:
+        status = job.get("status")
+
+    print("status == %s" %(status))
+    return status
+
+def get_cluster_primary_ip(cluster_id):
+    print("get_cluster_primary_ip cluster_id == %s" %(cluster_id))
+    global conn
+    primary_ip = None
+
+    # DescribeClusterDisplayTabs
+    action = const.ACTION_DESCRIBE_CLUSTER_DISPLAY_TABS
+    print("action == %s" % (action))
+    ret = conn.describe_cluster_display_tabs(cluster=cluster_id,verbose=1,display_tabs="node_details")
+    print("describe_cluster_display_tabs ret == %s" % (ret))
+    check_ret_code(ret, action)
+    display_tabs = ret['display_tabs']
+    if display_tabs is None or len(display_tabs) == 0:
+        print("describe_cluster_display_tabs display_tabs is None")
+        return None
+    datas = display_tabs['data']
+    print("datas == %s" % (datas))
+
+    primary = "primary"
+    for data in datas:
+        print("data == %s" % (data))
+        if primary in data:
+            primary_ip = data[1]
+
+    print("primary_ip == %s" %(primary_ip))
+    return primary_ip
 
 def deploy_app_version(app_ids,vxnet_id,zone_id):
     print("子线程启动")
@@ -288,6 +329,50 @@ def deploy_app_version(app_ids,vxnet_id,zone_id):
     ret = conn.deploy_app_version(app_type=app_type,app_id=app_ids,version_id=version_id,conf=jconf,charge_mode="elastic",debug=0,owner=user_id)
     print("deploy_app_version ret == %s" % (ret))
     check_ret_code(ret, action)
+    cluster_id = ret['cluster_id']
+    job_id = ret['job_id']
+    print("cluster_id == %s" % (cluster_id))
+    print("job_id == %s" % (job_id))
+
+    # check job status
+    num = 0
+    while num < 300:
+        num = num + 1
+        print("num == %d" % (num))
+        time.sleep(1)
+        status = get_job_status(job_id)
+        if status == "successful":
+            print("deploy_app_version successful")
+            break
+
+    print("status == %s" % (status))
+    if status == "successful":
+        # create_rdb ok
+        create_rdb_status = "True"
+        # create_rdb_status 写入文件
+        create_rdb_status_conf = "/opt/create_rdb_status_conf"
+        with open(create_rdb_status_conf, "w+") as f1:
+            f1.write("CREATE_RDB_STATUS %s" % (create_rdb_status))
+
+        # master_ip 写入文件
+        master_ip_conf = "/opt/master_ip_conf"
+        ret = get_cluster_primary_ip(cluster_id)
+        with open(master_ip_conf, "w+") as f1:
+            f1.write("POSTGRESQL_ADDRESS %s" % (ret))
+
+        # user_id 写入文件
+        user_id_conf = "/opt/user_id_conf"
+        ret = get_user_id()
+        with open(user_id_conf, "w+") as f1:
+            f1.write("USER_ID %s" % (ret))
+    else:
+        print("deploy_app_version timeout")
+        create_rdb_status =  "False"
+        # create_rdb_status 写入文件
+        create_rdb_status_conf = "/opt/create_rdb_status_conf"
+        with open(create_rdb_status_conf, "w+") as f1:
+            f1.write("CREATE_RDB_STATUS %s" % (create_rdb_status))
+        exit(-1)
 
     print("子线程结束")
 

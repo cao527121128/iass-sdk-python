@@ -2419,3 +2419,41 @@ class APIConnection(HttpConnection):
 
         return self.send_request(action, body)
 
+    def describe_cluster_display_tabs(self,
+                               cluster=None,
+                               display_tabs=None,
+                               status=None,
+                               sort_key=None,
+                               owner=None,
+                               verbose=1,
+                               search_word=None,
+                               offset=None,
+                               limit=None,
+                               reverse=None,
+                               **ignore):
+        """ describe cluster_display_tabs filtered by condition.
+        @param cluster:The ID of cluster.
+        @param display_tabs:The name of the display tabs.
+        @param status: ["active","stopped","pending"].
+        @param sort_key: the sort key, which defaults be create_time.
+        @param owner: Filter by user account, return only the resources of the specified account.
+        @param verbose: the number to specify the verbose level,
+                        larger the number, the more detailed information will be returned.
+        @param search_word: the search word.
+        @param offset: the starting offset of the returning results.
+        @param limit: specify the number of the returning results.
+        @param reverse: 0 for Ascending order, 1 for Descending order.
+        """
+        action = const.ACTION_DESCRIBE_CLUSTER_DISPLAY_TABS
+        valid_keys = ['cluster','display_tabs','status','sort_key','owner','verbose','search_word','offset','limit','reverse']
+        body = filter_out_none(locals(), valid_keys)
+        if not self.req_checker.check_params(body,
+                                             required_params=[],
+                                             integer_params=[
+                                                 "offset", "limit", "verbose"],
+                                             list_params=["status"]
+                                             ):
+            return None
+
+        return self.send_request(action, body)
+
