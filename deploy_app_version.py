@@ -117,7 +117,7 @@ def get_job_status(job_id):
     # DescribeJobs
     action = const.ACTION_DESCRIBE_JOBS
     print("action == %s" % (action))
-    ret = conn.describe_jobs(jobs=job_id, verbose=1)
+    ret = conn.describe_jobs(jobs=job_id,verbose=1)
     check_ret_code(ret, action)
     job_set = ret['job_set']
     if job_set is None or len(job_set) == 0:
@@ -349,7 +349,7 @@ def deploy_app_version(app_ids,vxnet_id,zone_id):
     num = 0
     while num < 300:
         num = num + 1
-        print("num == %d \n" % (num))
+        print("num == %d" % (num))
         time.sleep(1)
         status = get_job_status(job_id)
         if status == "successful":
