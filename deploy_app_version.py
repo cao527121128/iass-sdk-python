@@ -178,7 +178,7 @@ def get_memcached_cluster_private_ip(cluster_id):
     print("private_ip == %s" %(private_ip))
     return private_ip
 
-def deploy_app_version(app_ids,vxnet_id,zone_id):
+def deploy_app_version(app_ids,vxnet_id,zone_id,primary_private_ip,standby_private_ip):
     print("子线程启动")
     print("deploy_app_version")
     global conn
@@ -189,6 +189,8 @@ def deploy_app_version(app_ids,vxnet_id,zone_id):
     app_type = ["cluster"]
     status = ["active"]
     print("app_ids == %s" % (app_ids))
+    print("primary_private_ip == %s" % (primary_private_ip))
+    print("standby_private_ip == %s" % (standby_private_ip))
 
     # # DescribeApps
     action = const.ACTION_DESCRIBE_APPS
@@ -222,115 +224,240 @@ def deploy_app_version(app_ids,vxnet_id,zone_id):
     print("action == %s" % (action))
     print("app_ids == %s version_id == %s" % (app_ids,version_id))
     if app_ids == [const.POSTGRESQL_APP_IDS]:
-        conf = {
-            "cluster": {
-                "name": "vdi-portal-postgresql",
-                "description": "postgresql",
-                "auto_backup_time": "-1",
-                "pg": {
-                    "cpu": 2,
-                    "memory": 4096,
-                    "instance_class": 0,
-                    "volume_size": 50
+        if primary_private_ip:
+            print("primary_private_ip is not None.The cluster uses the specified private IP")
+            # "private_ips":"192.168.15.100,192.168.15.101"
+            private_ips_list = primary_private_ip + "," + standby_private_ip
+            print("private_ips_list == %s" % (private_ips_list))
+            conf = {
+                "cluster": {
+                    "name": "vdi-portal-postgresql",
+                    "description": "postgresql",
+                    "auto_backup_time": "-1",
+                    "pg": {
+                        "cpu": 2,
+                        "memory": 4096,
+                        "instance_class": 0,
+                        "volume_size": 50
+                    },
+                    "ri": {
+                        "cpu": 2,
+                        "memory": 4096,
+                        "instance_class": 1,
+                        "count": 0,
+                        "volume_size": 20
+                    },
+                    "pgpool": {
+                        "cpu": 2,
+                        "memory": 4096,
+                        "instance_class": 1,
+                        "count": 0,
+                        "volume_size": 20
+                    },
+                    "vxnet": vxnet_id,
+                    "global_uuid": global_uuid
                 },
-                "ri": {
-                    "cpu": 2,
-                    "memory": 4096,
-                    "instance_class": 1,
-                    "count": 0,
-                    "volume_size": 20
+                "version": version_id,
+                "resource_group": "Standard",
+                "zone": zone_id,
+                "private_ips":[{"role":"pg","private_ips":private_ips_list}],
+                "env": {
+                    "db_name": "vdi",
+                    "user_name": "yunify",
+                    "password": "Zhu88jie",
+                    "pg_version": "11",
+                    "serialize_accept": "off",
+                    "pgpool_port": 9999,
+                    "child_life_time": 300,
+                    "connection_life_time": 600,
+                    "client_idle_limit": 0,
+                    "max_pool": 2,
+                    "num_init_children": 100,
+                    "sync_stream_repl": "Yes",
+                    "load_read_request_to_primary": "Yes",
+                    "auto_failover": "Yes",
+                    "max_connections": "auto-optimized-conns",
+                    "wal_buffers": "8MB",
+                    "work_mem": "4MB",
+                    "maintenance_work_mem": "64MB",
+                    "effective_cache_size": "4GB",
+                    "wal_keep_segments": 256,
+                    "checkpoint_timeout": "5min",
+                    "autovacuum": "on",
+                    "vacuum_cost_delay": 0,
+                    "autovacuum_naptime": "1min",
+                    "vacuum_cost_limit": 200,
+                    "bgwriter_delay": 200,
+                    "bgwriter_lru_multiplier": 2,
+                    "wal_writer_delay": 200,
+                    "fsync": "on",
+                    "commit_delay": 0,
+                    "commit_siblings": 5,
+                    "enable_bitmapscan": "on",
+                    "enable_seqscan": "on",
+                    "full_page_writes": "on",
+                    "log_min_messages": "warning",
+                    "deadlock_timeout": 1,
+                    "log_lock_waits": "off",
+                    "log_min_duration_statement": -1,
+                    "temp_buffers": "8MB",
+                    "max_prepared_transactions": 0,
+                    "max_wal_senders": 10,
+                    "bgwriter_lru_maxpages": 100,
+                    "log_statement": "none",
+                    "shared_preload_libraries": "passwordcheck",
+                    "wal_level": "replica",
+                    "shared_buffers": "auto-optimized-sharedbuffers",
+                    "jit": "off"
                 },
-                "pgpool": {
-                    "cpu": 2,
-                    "memory": 4096,
-                    "instance_class": 1,
-                    "count": 0,
-                    "volume_size": 20
-                },
-                "vxnet": vxnet_id,
-                "global_uuid": global_uuid
-            },
-            "version": version_id,
-            "resource_group": "Standard",
-            "zone": zone_id,
-            "env": {
-                "db_name": "vdi",
-                "user_name": "yunify",
-                "password": "Zhu88jie",
-                "pg_version": "11",
-                "serialize_accept": "off",
-                "pgpool_port": 9999,
-                "child_life_time": 300,
-                "connection_life_time": 600,
-                "client_idle_limit": 0,
-                "max_pool": 2,
-                "num_init_children": 100,
-                "sync_stream_repl": "Yes",
-                "load_read_request_to_primary": "Yes",
-                "auto_failover": "Yes",
-                "max_connections": "auto-optimized-conns",
-                "wal_buffers": "8MB",
-                "work_mem": "4MB",
-                "maintenance_work_mem": "64MB",
-                "effective_cache_size": "4GB",
-                "wal_keep_segments": 256,
-                "checkpoint_timeout": "5min",
-                "autovacuum": "on",
-                "vacuum_cost_delay": 0,
-                "autovacuum_naptime": "1min",
-                "vacuum_cost_limit": 200,
-                "bgwriter_delay": 200,
-                "bgwriter_lru_multiplier": 2,
-                "wal_writer_delay": 200,
-                "fsync": "on",
-                "commit_delay": 0,
-                "commit_siblings": 5,
-                "enable_bitmapscan": "on",
-                "enable_seqscan": "on",
-                "full_page_writes": "on",
-                "log_min_messages": "warning",
-                "deadlock_timeout": 1,
-                "log_lock_waits": "off",
-                "log_min_duration_statement": -1,
-                "temp_buffers": "8MB",
-                "max_prepared_transactions": 0,
-                "max_wal_senders": 10,
-                "bgwriter_lru_maxpages": 100,
-                "log_statement": "none",
-                "shared_preload_libraries": "passwordcheck",
-                "wal_level": "replica",
-                "shared_buffers": "auto-optimized-sharedbuffers",
-                "jit": "off"
-            },
-            "toggle_passwd": "on"
-        }
-    elif app_ids == [const.MEMCACHED_APP_IDS]:
-        conf = {
-            "cluster":{
-                "name":"vdi-portal-memcached",
-                "description":"memcached",
-                "memcached_node":{
-                    "cpu":1,
-                    "memory":1024,
-                    "instance_class":0,
-                    "count":1
-                },
-                "vxnet":vxnet_id,
-                "global_uuid":global_uuid
-            },
-            "version":version_id,
-            "zone":zone_id,
-            "env":{
-                "-p":11211,
-                "-U":11211,
-                "-c":65000,
-                "-m":716,
-                "-n":48,
-                "-f":1.25,
-                "-t":1,
-                "-M":0
+                "toggle_passwd": "on"
             }
-        }
+        else:
+            print("primary_private_ip is None.The cluster uses automatically assigns private IP")
+            conf = {
+                "cluster": {
+                    "name": "vdi-portal-postgresql",
+                    "description": "postgresql",
+                    "auto_backup_time": "-1",
+                    "pg": {
+                        "cpu": 2,
+                        "memory": 4096,
+                        "instance_class": 0,
+                        "volume_size": 50
+                    },
+                    "ri": {
+                        "cpu": 2,
+                        "memory": 4096,
+                        "instance_class": 1,
+                        "count": 0,
+                        "volume_size": 20
+                    },
+                    "pgpool": {
+                        "cpu": 2,
+                        "memory": 4096,
+                        "instance_class": 1,
+                        "count": 0,
+                        "volume_size": 20
+                    },
+                    "vxnet": vxnet_id,
+                    "global_uuid": global_uuid
+                },
+                "version": version_id,
+                "resource_group": "Standard",
+                "zone": zone_id,
+                "env": {
+                    "db_name": "vdi",
+                    "user_name": "yunify",
+                    "password": "Zhu88jie",
+                    "pg_version": "11",
+                    "serialize_accept": "off",
+                    "pgpool_port": 9999,
+                    "child_life_time": 300,
+                    "connection_life_time": 600,
+                    "client_idle_limit": 0,
+                    "max_pool": 2,
+                    "num_init_children": 100,
+                    "sync_stream_repl": "Yes",
+                    "load_read_request_to_primary": "Yes",
+                    "auto_failover": "Yes",
+                    "max_connections": "auto-optimized-conns",
+                    "wal_buffers": "8MB",
+                    "work_mem": "4MB",
+                    "maintenance_work_mem": "64MB",
+                    "effective_cache_size": "4GB",
+                    "wal_keep_segments": 256,
+                    "checkpoint_timeout": "5min",
+                    "autovacuum": "on",
+                    "vacuum_cost_delay": 0,
+                    "autovacuum_naptime": "1min",
+                    "vacuum_cost_limit": 200,
+                    "bgwriter_delay": 200,
+                    "bgwriter_lru_multiplier": 2,
+                    "wal_writer_delay": 200,
+                    "fsync": "on",
+                    "commit_delay": 0,
+                    "commit_siblings": 5,
+                    "enable_bitmapscan": "on",
+                    "enable_seqscan": "on",
+                    "full_page_writes": "on",
+                    "log_min_messages": "warning",
+                    "deadlock_timeout": 1,
+                    "log_lock_waits": "off",
+                    "log_min_duration_statement": -1,
+                    "temp_buffers": "8MB",
+                    "max_prepared_transactions": 0,
+                    "max_wal_senders": 10,
+                    "bgwriter_lru_maxpages": 100,
+                    "log_statement": "none",
+                    "shared_preload_libraries": "passwordcheck",
+                    "wal_level": "replica",
+                    "shared_buffers": "auto-optimized-sharedbuffers",
+                    "jit": "off"
+                },
+                "toggle_passwd": "on"
+            }
+
+    elif app_ids == [const.MEMCACHED_APP_IDS]:
+        if primary_private_ip:
+            print("primary_private_ip is not None.The cluster uses the specified private IP")
+            # "private_ips":"192.168.15.102"
+            private_ips_list = primary_private_ip
+            print("private_ips_list == %s" % (private_ips_list))
+            conf = {
+                "cluster":{
+                    "name":"vdi-portal-memcached",
+                    "description":"memcached",
+                    "memcached_node":{
+                        "cpu":1,
+                        "memory":1024,
+                        "instance_class":0,
+                        "count":1
+                    },
+                    "vxnet":vxnet_id,
+                    "global_uuid":global_uuid
+                },
+                "version":version_id,
+                "zone":zone_id,
+                "private_ips":[{"role":"memcached_node","private_ips":private_ips_list}],
+                "env":{
+                    "-p":11211,
+                    "-U":11211,
+                    "-c":65000,
+                    "-m":716,
+                    "-n":48,
+                    "-f":1.25,
+                    "-t":1,
+                    "-M":0
+                }
+            }
+        else:
+            print("primary_private_ip is None.The cluster uses automatically assigns private IP")
+            conf = {
+                "cluster": {
+                    "name": "vdi-portal-memcached",
+                    "description": "memcached",
+                    "memcached_node": {
+                        "cpu": 1,
+                        "memory": 1024,
+                        "instance_class": 0,
+                        "count": 1
+                    },
+                    "vxnet": vxnet_id,
+                    "global_uuid": global_uuid
+                },
+                "version": version_id,
+                "zone": zone_id,
+                "env": {
+                    "-p": 11211,
+                    "-U": 11211,
+                    "-c": 65000,
+                    "-m": 716,
+                    "-n": 48,
+                    "-f": 1.25,
+                    "-t": 1,
+                    "-M": 0
+                }
+            }
     else:
         print("app_ids %s is invalid" %(app_ids))
 
@@ -437,6 +564,12 @@ if __name__ == "__main__":
     opt_parser.add_option("-A", "--app_ids", action="store", type="string", \
                           dest="app_ids", help='appcenter app_ids', default="")
 
+    opt_parser.add_option("-m", "--primary_private_ip", action="store", type="string", \
+                          dest="primary_private_ip", help='primary private ip', default="")
+
+    opt_parser.add_option("-t", "--standby_private_ip", action="store", type="string", \
+                          dest="standby_private_ip", help='standby private ip', default="")
+
     (options, _) = opt_parser.parse_args(sys.argv)
 
     zone_id = options.zone_id
@@ -446,7 +579,9 @@ if __name__ == "__main__":
     port = options.port
     protocol = options.protocol
     vxnet_id = options.vxnet_id
-    app_ids = explode_array(options.app_ids or "")
+    app_ids = options.app_ids
+    primary_private_ip = options.primary_private_ip or ""
+    standby_private_ip = options.standby_private_ip or ""
 
     print("zone_id:%s" % (zone_id))
     print("access_key_id:%s" % (access_key_id))
@@ -456,12 +591,14 @@ if __name__ == "__main__":
     print("protocol:%s" % (protocol))
     print("vxnet_id:%s" % (vxnet_id))
     print("app_ids:%s" % (app_ids))
+    print("primary_private_ip:%s" % (primary_private_ip))
+    print("standby_private_ip:%s" % (standby_private_ip))
 
     #连接iaas后台
     connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
 
     #创建子线程通过appcenter创建postgresql集群 部署指定数据库应用版本的集群
-    t = threading.Thread(target=deploy_app_version,args=(app_ids,vxnet_id,zone_id,))
+    t = threading.Thread(target=deploy_app_version,args=(app_ids,vxnet_id,zone_id,primary_private_ip,standby_private_ip))
     t.start()
     t.join()
 
