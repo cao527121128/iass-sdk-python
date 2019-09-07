@@ -124,8 +124,6 @@ if __name__ == "__main__":
     opt_parser.add_option("-P", "--protocol", action="store", type="string", \
                           dest="protocol", help='protocol', default="")
 
-
-
     (options, _) = opt_parser.parse_args(sys.argv)
     zone_id = options.zone_id
     access_key_id = options.access_key_id
@@ -139,8 +137,6 @@ if __name__ == "__main__":
     print("host:%s" % (host))
     print("port:%s" % (port))
     print("protocol:%s" % (protocol))
-
-
 
     #连接iaas后台
     connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
@@ -164,6 +160,9 @@ if __name__ == "__main__":
 
     s2_server_quota_left = get_user_quota_left('s2_server', user_id)
     print("s2_server_quota_left=%d" % (s2_server_quota_left))
+
+    cluster_quota_left = get_user_quota_left('cluster', user_id)
+    print("cluster_quota_left=%d" % (cluster_quota_left))
 
     # rdb_quota_left 写入文件
     rdb_quota_left_conf = "/opt/rdb_quota_left_conf"
@@ -189,6 +188,11 @@ if __name__ == "__main__":
     s2_server_quota_left_conf = "/opt/s2_server_quota_left_conf"
     with open(s2_server_quota_left_conf, "w+") as f1:
         f1.write("S2_SERVER_QUOTA_LEFT %d" % (s2_server_quota_left))
+
+    # cluster_quota_left 写入文件
+    cluster_quota_left_conf = "/opt/cluster_quota_left_conf"
+    with open(cluster_quota_left_conf, "w+") as f1:
+        f1.write("CLUSTER_QUOTA_LEFT %d" % (cluster_quota_left))
 
     print("主线程结束")
 
