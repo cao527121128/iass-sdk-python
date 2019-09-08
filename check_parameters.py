@@ -12,84 +12,35 @@ import time
 from optparse import OptionParser
 import sys
 import os
+import qingcloud.iaas.constants as const
+import common.common as Common
 
-# global
-zone_id = None
-conn=None
-access_key_id = None
-secret_access_key = None
-host = None
-port = None
-protocol = None
-secret_access_key_flag = True
-access_key_id_flag = True
-host_flag = True
-user_id = None
-zone_id_flag = True
-
-
-
-
-def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
-    print("connect_iaas")
-    print("starting connect_to_zone ...")
-    global conn
-    conn = qingcloud.iaas.connect_to_zone(
-        zone_id,
-        access_key_id,
-        secret_access_key,
-        host,
-        port,
-        protocol
-    )
-    if conn < 0:
-        print("connect_to_zone fail")
-        exit(-1)
-    print("conn==%s" %(conn))
-
-    # user_id=get_user_id()
-    # if not user_id:
-    #     print("user_id is null")
-    #     exit(-1)
-
-def get_user_id():
+def get_user_id(conn,access_key_id,secret_access_key_flag=True,access_key_id_flag=True,host_flag=True):
     print("get_user_id")
-    global conn
-    global access_key_id
-    global secret_access_key_flag
-    global access_key_id_flag
-    global host_flag
-    global user_id
+    user_id = None
 
     #查看access_keys详情
     try:
+        # DescribeAccessKeys
+        action = const.ACTION_DESCRIBE_ACCESS_KEYS
+        print("action == %s" % (action))
         ret = conn.describe_access_keys(access_keys=[access_key_id])
-        print("ret=%s" %(ret))
-        # secret_access_key error
-        # ret = {u'message': u'AuthFailure, signature not matched', u'ret_code': 1200}
-
-        # access_key_id error
-        # ret = {u'message': u'AuthFailure, illegal access key [GGUFCUPUBYZDMONGVACEFDD]', u'ret_code': 1200}
-        if ret.get("ret_code") == 1200:
+        print("describe_access_keys ret == %s" % (ret))
+        if ret.get("ret_code") == 0:
+            access_key_set = ret['access_key_set']
+            if access_key_set is None or len(access_key_set) == 0:
+                print("describe_access_keys access_key_set is None")
+                exit(-1)
+            for access_key in access_key_set:
+                user_id = access_key.get("owner")
+        else:
             if ret.get("message") == "AuthFailure, signature not matched":
                 print("AuthFailure, signature not matched")
                 secret_access_key_flag = False
-
             else:
                 print("AuthFailure, illegal access key")
                 access_key_id_flag = False
 
-        matched_access_key = ret['access_key_set']
-        print("matched_access_key==%s" % (matched_access_key))
-
-        print("************************************")
-
-        wanted_access_key = matched_access_key[0]
-        print("wanted_access_key==%s" % (wanted_access_key))
-
-        print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-        user_id = wanted_access_key.get('owner')
-        print("user_id=%s" % (user_id))
     except:
 
         # host error
@@ -99,6 +50,10 @@ def get_user_id():
         host_flag = False
 
     finally:
+        print("secret_access_key_flag == %s" % (secret_access_key_flag))
+        print("access_key_id_flag == %s" % (access_key_id_flag))
+        print("host_flag == %s" % (host_flag))
+
         # secret_access_key_flag 写入文件
         secret_access_key_conf = "/opt/secret_access_key_conf"
         with open(secret_access_key_conf, "w+") as f1:
@@ -116,27 +71,28 @@ def get_user_id():
 
         return user_id
 
-def check_zone_id_parameter(resource_type,user_id):
+def check_zone_id_parameter(conn,resource_type,user_id,zone_id_flag=True):
     print("check_zone_id_parameter")
-    global conn
-    global zone_id_flag
 
-    #调用用户配额剩余 以检查zone_id是否正确
+    # 调用用户配额剩余 以检查zone_id是否正确
+    # DescribeAccessKeys
+    action = const.ACTION_GET_QUOTA_LEFT
+    print("action == %s" % (action))
     ret = conn.get_quota_left(resource_types=[resource_type], owner=user_id)
-    print("ret=%s" %(ret))
+    print("get_quota_left ret == %s" % (ret))
     if ret.get("ret_code") == 1400:
         message = ret.get("message")
         test_message = 'PermissionDenied, access denied for zone'
         result = test_message in message
-        print("result=%s" %(result))
+        print("result == %s" % (result))
         if result == True:
             zone_id_flag = False
 
+    print("zone_id_flag == %s" % (zone_id_flag))
     # zone_id_flag 写入文件
     zone_id_conf = "/opt/zone_id_conf"
     with open(zone_id_conf, "w+") as f1:
         f1.write("ZONE_ID_FLAG %s" % (zone_id_flag))
-
 
 if __name__ == "__main__":
     print("主线程启动")
@@ -160,8 +116,6 @@ if __name__ == "__main__":
     opt_parser.add_option("-P", "--protocol", action="store", type="string", \
                           dest="protocol", help='protocol', default="")
 
-
-
     (options, _) = opt_parser.parse_args(sys.argv)
     zone_id = options.zone_id
     access_key_id = options.access_key_id
@@ -176,14 +130,13 @@ if __name__ == "__main__":
     print("port:%s" % (port))
     print("protocol:%s" % (protocol))
 
-
-
     #连接iaas后台
-    connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    conn = Common.connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    print("connect_iaas conn == %s" % (conn))
 
-    user_id = get_user_id()
-
-    print("user_id=%s" %(user_id))
+    # 获取账号ID
+    user_id = get_user_id(conn,access_key_id)
+    print("get_user_id user_id == %s" % (user_id))
 
     # user_id 写入文件
     user_id_conf = "/opt/user_id_conf"
@@ -192,7 +145,7 @@ if __name__ == "__main__":
 
     if user_id:
         #check zone parameter if correct
-        check_zone_id_parameter('rdb',user_id)
+        check_zone_id_parameter(conn,'rdb',user_id)
 
     print("主线程结束")
 
