@@ -673,6 +673,7 @@ if __name__ == "__main__":
     opt_parser = OptionParser()
     opt_parser.add_option("-z", "--zone_id", action="store", type="string", \
                           dest="zone_id", help='zone id', default="")
+
     opt_parser.add_option("-a", "--access_key_id", action="store", type="string", \
                           dest="access_key_id", help='access key id', default="")
 
@@ -726,10 +727,8 @@ if __name__ == "__main__":
     print("g_vdi1_ip:%s" % (g_vdi1_ip))
     print("private_ips:%s" % (private_ips))
 
-
     #连接iaas后台
     connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
-
 
     #创建子线程--创建共享存储服务器
     t = threading.Thread(target=create_s2server,args=(vxnet_id,private_ips,))
@@ -740,7 +739,6 @@ if __name__ == "__main__":
     if not g_create_s2_server_flag:
         print("create_s2server failed")
         exit(-1)
-
 
     #创建子线程--新建共享存储目标
     t2 = threading.Thread(target=create_s2_shared_target)

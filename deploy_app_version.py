@@ -14,132 +14,18 @@ import sys
 import os
 import qingcloud.iaas.constants as const
 import json
+import common.common as Common
 
-# global
-zone_id = None
-conn=None
-access_key_id = None
-secret_access_key = None
-host = None
-port = None
-protocol = None
-vxnet_id = None
-
-def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
-    print("connect_iaas")
-    print("starting connect_to_zone ...")
-    global conn
-    conn = qingcloud.iaas.connect_to_zone(
-        zone_id,
-        access_key_id,
-        secret_access_key,
-        host,
-        port,
-        protocol
-    )
-    if conn < 0:
-        print("connect_to_zone fail")
-        exit(-1)
-    print("conn==%s" %(conn))
-
-    user_id=get_user_id()
-    if not user_id:
-        print("user_id is null")
-        exit(-1)
-
-def get_vxnet_id():
-    print("get_vxnet_id")
-    global conn
-
-    # DescribeVxnets
-    action = const.ACTION_DESCRIBE_VXNETS
-    print("action == %s" % (action))
-    ret = conn.describe_vxnets(limit=1, vxnet_type=2)
-    print("describe_vxnets ret == %s" % (ret))
-    check_ret_code(ret, action)
-    vxnet_set = ret['vxnet_set']
-    if vxnet_set is None or len(vxnet_set) == 0:
-        print("describe_vxnets vxnet_set is None")
-        exit(-1)
-    for vxnet in vxnet_set:
-        vxnet_id = vxnet.get("vxnet_id")
-
-    print("vxnet_id == %s" % (vxnet_id))
-    return vxnet_id
-
-def get_user_id():
-    print("get_user_id")
-    global conn
-    global access_key_id
-
-    # DescribeAccessKeys
-    action = const.ACTION_DESCRIBE_ACCESS_KEYS
-    print("action == %s" % (action))
-    ret = conn.describe_access_keys(access_keys=[access_key_id])
-    print("describe_access_keys ret == %s" % (ret))
-    check_ret_code(ret, action)
-    access_key_set = ret['access_key_set']
-    if access_key_set is None or len(access_key_set) == 0:
-        print("describe_access_keys access_key_set is None")
-        exit(-1)
-    for access_key in access_key_set:
-        user_id = access_key.get("owner")
-
-    print("user_id == %s" % (user_id))
-    return user_id
-
-def explode_array(list_str, separator = ","):
-    ''' explode list string into array '''
-    if list_str is None:
-        return None
-    result = []
-    disk_list = list_str.split(separator)
-    for disk in disk_list:
-        disk = disk.strip()
-        if disk != "":
-
-            result.append(disk)
-    return result
-
-def check_ret_code(ret,action):
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("%s failed" %(action))
-        exit(-1)
-
-def get_job_status(job_id):
-    print("get_job_status job_id == %s" %(job_id))
-    global conn
-    if job_id and not isinstance(job_id, list):
-        job_id = [job_id]
-
-    # DescribeJobs
-    action = const.ACTION_DESCRIBE_JOBS
-    print("action == %s" % (action))
-    ret = conn.describe_jobs(jobs=job_id,verbose=1)
-    check_ret_code(ret, action)
-    job_set = ret['job_set']
-    if job_set is None or len(job_set) == 0:
-        print("describe_jobs job_set is None")
-        return None
-    for job in job_set:
-        status = job.get("status")
-
-    print("status == %s" %(status))
-    return status
-
-def get_postgresql_cluster_primary_ip(cluster_id):
+def get_postgresql_cluster_primary_ip(conn,cluster_id):
     print("get_postgresql_cluster_primary_ip cluster_id == %s" %(cluster_id))
-    global conn
-    primary_ip = None
 
+    primary_ip = None
     # DescribeClusterDisplayTabs
     action = const.ACTION_DESCRIBE_CLUSTER_DISPLAY_TABS
     print("action == %s" % (action))
     ret = conn.describe_cluster_display_tabs(cluster=cluster_id,verbose=1,display_tabs="node_details")
     print("describe_cluster_display_tabs ret == %s" % (ret))
-    check_ret_code(ret, action)
+    Common.check_ret_code(ret, action)
     display_tabs = ret['display_tabs']
     if display_tabs is None or len(display_tabs) == 0:
         print("describe_cluster_display_tabs display_tabs is None")
@@ -156,9 +42,8 @@ def get_postgresql_cluster_primary_ip(cluster_id):
     print("primary_ip == %s" %(primary_ip))
     return primary_ip
 
-def get_memcached_cluster_private_ip(cluster_id):
+def get_memcached_cluster_private_ip(conn,cluster_id):
     print("get_memcached_cluster_private_ip cluster_id == %s" %(cluster_id))
-    global conn
     private_ip = None
 
     # DescribeClusterNodes
@@ -166,7 +51,7 @@ def get_memcached_cluster_private_ip(cluster_id):
     print("action == %s" % (action))
     ret = conn.describe_cluster_nodes(cluster=cluster_id,verbose=1,limit=1)
     print("describe_cluster_nodes ret == %s" % (ret))
-    check_ret_code(ret, action)
+    Common.check_ret_code(ret, action)
 
     node_set = ret['node_set']
     if node_set is None or len(node_set) == 0:
@@ -178,12 +63,10 @@ def get_memcached_cluster_private_ip(cluster_id):
     print("private_ip == %s" %(private_ip))
     return private_ip
 
-def deploy_app_version(app_ids,vxnet_id,zone_id,primary_private_ip,standby_private_ip):
+def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,standby_private_ip):
     print("子线程启动")
     print("deploy_app_version")
-    global conn
 
-    user_id = get_user_id()
     if app_ids and not isinstance(app_ids, list):
         app_ids = [app_ids]
     app_type = ["cluster"]
@@ -196,14 +79,15 @@ def deploy_app_version(app_ids,vxnet_id,zone_id,primary_private_ip,standby_priva
     action = const.ACTION_DESCRIBE_APPS
     print("action == %s" % (action))
     ret = conn.describe_apps(app=app_ids[0],app_type=app_type)
-    # print("describe_apps ret == %s" % (ret))
-    check_ret_code(ret, action)
+    print("describe_apps ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
 
     # DescribeAppVersions
     action = const.ACTION_DESCRIBE_APP_VERSIONS
     print("action == %s" % (action))
     ret = conn.describe_app_versions(app_ids=app_ids,status=status,limit=1)
-    check_ret_code(ret, action)
+    print("describe_app_versions ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
     version_set = ret['version_set']
     if version_set is None or len(version_set) == 0:
         print("describe_app_versions version_set is None")
@@ -215,8 +99,8 @@ def deploy_app_version(app_ids,vxnet_id,zone_id,primary_private_ip,standby_priva
     action = const.ACTION_GET_GLOBAL_UNIQUE_ID
     print("action == %s" % (action))
     ret = conn.get_global_unique_id(owner=user_id,zone=zone_id)
-    # print("get_global_unique_id ret == %s" % (ret))
-    check_ret_code(ret, action)
+    print("get_global_unique_id ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
     global_uuid = ret['uuid']
 
     #DeployAppVersion
@@ -466,7 +350,7 @@ def deploy_app_version(app_ids,vxnet_id,zone_id,primary_private_ip,standby_priva
     print("jconf == %s" % (jconf))
     ret = conn.deploy_app_version(app_type=app_type,app_id=app_ids,version_id=version_id,conf=jconf,charge_mode="elastic",debug=0,owner=user_id)
     print("deploy_app_version ret == %s" % (ret))
-    check_ret_code(ret, action)
+    Common.check_ret_code(ret, action)
     cluster_id = ret['cluster_id']
     job_id = ret['job_id']
     print("cluster_id == %s" % (cluster_id))
@@ -478,7 +362,7 @@ def deploy_app_version(app_ids,vxnet_id,zone_id,primary_private_ip,standby_priva
         num = num + 1
         print("num == %d" % (num))
         time.sleep(1)
-        status = get_job_status(job_id)
+        status = Common.get_job_status(conn,job_id)
         if status == "successful":
             print("deploy_app_version successful")
             break
@@ -497,7 +381,7 @@ def deploy_app_version(app_ids,vxnet_id,zone_id,primary_private_ip,standby_priva
 
             # master_ip 写入文件
             master_ip_conf = "/opt/master_ip_conf"
-            ret = get_postgresql_cluster_primary_ip(cluster_id)
+            ret = get_postgresql_cluster_primary_ip(conn,cluster_id)
             with open(master_ip_conf, "w+") as f2:
                 f2.write("POSTGRESQL_ADDRESS %s" % (ret))
         else:
@@ -519,7 +403,7 @@ def deploy_app_version(app_ids,vxnet_id,zone_id,primary_private_ip,standby_priva
 
             # memcached_ip 写入文件
             memcached_ip_conf = "/opt/memcached_ip_conf"
-            ret = get_memcached_cluster_private_ip(cluster_id)
+            ret = get_memcached_cluster_private_ip(conn,cluster_id)
             with open(memcached_ip_conf, "w+") as f2:
                 f2.write("MEMCACHED_ADDRESS %s" % (ret))
         else:
@@ -595,10 +479,19 @@ if __name__ == "__main__":
     print("standby_private_ip:%s" % (standby_private_ip))
 
     #连接iaas后台
-    connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    conn = Common.connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    print("connect_iaas conn == %s" % (conn))
+
+    # 获取账号ID
+    user_id = Common.get_user_id(conn,access_key_id)
+    print("get_user_id user_id == %s" % (user_id))
+
+    # # 获取私有网络ID
+    # vxnet_id = Common.get_vxnet_id(conn,vxnet_type=2)
+    # print("get_vxnet_id vxnet_id == %s" % (vxnet_id))
 
     #创建子线程通过appcenter创建postgresql集群 部署指定数据库应用版本的集群
-    t = threading.Thread(target=deploy_app_version,args=(app_ids,vxnet_id,zone_id,primary_private_ip,standby_private_ip))
+    t = threading.Thread(target=deploy_app_version,args=(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,standby_private_ip,))
     t.start()
     t.join()
 
