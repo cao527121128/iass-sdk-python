@@ -13,71 +13,11 @@ from optparse import OptionParser
 import sys
 import os
 import qingcloud.iaas.constants as const
+import common.common as Common
 
-# global
-zone_id = None
-conn=None
-access_key_id = None
-secret_access_key = None
-host = None
-port = None
-protocol = None
-user_id = None
-
-def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
-    print("connect_iaas")
-    print("starting connect_to_zone ...")
-    global conn
-    conn = qingcloud.iaas.connect_to_zone(
-        zone_id,
-        access_key_id,
-        secret_access_key,
-        host,
-        port,
-        protocol
-    )
-    if conn < 0:
-        print("connect_to_zone fail")
-        exit(-1)
-    print("conn==%s" %(conn))
-
-    user_id=get_user_id()
-    if not user_id:
-        print("user_id is null")
-        exit(-1)
-
-def get_user_id():
-    print("get_user_id")
-    global conn
-    global access_key_id
-
-    # DescribeAccessKeys
-    action = const.ACTION_DESCRIBE_ACCESS_KEYS
-    print("action == %s" % (action))
-    ret = conn.describe_access_keys(access_keys=[access_key_id])
-    print("describe_access_keys ret == %s" % (ret))
-    check_ret_code(ret, action)
-    access_key_set = ret['access_key_set']
-    if access_key_set is None or len(access_key_set) == 0:
-        print("describe_access_keys access_key_set is None")
-        exit(-1)
-    for access_key in access_key_set:
-        user_id = access_key.get("owner")
-
-    print("user_id == %s" % (user_id))
-    return user_id
-
-def check_ret_code(ret,action):
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("%s failed" %(action))
-        exit(-1)
-
-def describe_apps(app_ids):
+def describe_apps(conn,user_id,app_ids):
     print("子线程启动")
     print("describe_apps")
-    global conn
 
     app_type = ['cluster']
     if app_ids and not isinstance(app_ids, list):
@@ -91,7 +31,7 @@ def describe_apps(app_ids):
         print("action == %s" % (action))
         ret = conn.describe_apps(app=app_id,app_type=app_type)
         print("describe_apps ret == %s" % (ret))
-        check_ret_code(ret, action)
+        Common.check_ret_code(ret, action)
         #get total
         total_count = ret.get('total_count')
         print("total_count == %d" %(total_count))
@@ -125,19 +65,6 @@ def describe_apps(app_ids):
 
     print("子线程结束")
 
-def explode_array(list_str, separator = ","):
-    ''' explode list string into array '''
-    if list_str is None:
-        return None
-    result = []
-    disk_list = list_str.split(separator)
-    for disk in disk_list:
-        disk = disk.strip()
-        if disk != "":
-
-            result.append(disk)
-    return result
-
 if __name__ == "__main__":
     print("主线程启动")
 
@@ -170,7 +97,7 @@ if __name__ == "__main__":
     host = options.host
     port = options.port
     protocol = options.protocol
-    app_ids = explode_array(options.app_ids or "")
+    app_ids = Common.explode_array(options.app_ids or "")
 
     print("zone_id:%s" % (zone_id))
     print("access_key_id:%s" % (access_key_id))
@@ -181,10 +108,15 @@ if __name__ == "__main__":
     print("app_ids:%s" % (app_ids))
 
     #连接iaas后台
-    connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    conn = Common.connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    print("connect_iaas conn == %s" % (conn))
+
+    # 获取账号ID
+    user_id = Common.get_user_id(conn,access_key_id)
+    print("get_user_id user_id == %s" % (user_id))
 
     #创建子线程--Check if the appcenter postgresql and memcached app is available
-    t = threading.Thread(target=describe_apps,args=(app_ids,))
+    t = threading.Thread(target=describe_apps,args=(conn,user_id,app_ids,))
     t.start()
     t.join()
 
