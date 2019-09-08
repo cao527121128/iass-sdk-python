@@ -12,245 +12,108 @@ import time
 from optparse import OptionParser
 import sys
 import os
+import qingcloud.iaas.constants as const
+import common.common as Common
 
-# global
-zone_id = None
-conn=None
-access_key_id = None
-secret_access_key = None
-host = None
-port = None
-protocol = None
-vxnet_id = None
-loadbalancer_id = None
-loadbalancer_listener_id = None
-resource_id = None
-g_cloned_instance_id = None
-g_cloned_instance_ip = None
+def get_cloned_instance_ip(conn,instance_id):
+    print("get_cloned_instance_ip instance_id == %s" %(instance_id))
+    private_ip = ""
 
+    if instance_id and not isinstance(instance_id, list):
+        instance_id = [instance_id]
+    print("instance_id == %s" %(instance_id))
 
+    # DescribeInstances
+    action = const.ACTION_DESCRIBE_INSTANCES
+    print("action == %s" % (action))
+    ret = conn.describe_instances(instances=instance_id, verbose=1)
+    print("describe_instances ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
 
-def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
-    print("connect_iaas")
-    print("starting connect_to_zone ...")
-    global conn
-    conn = qingcloud.iaas.connect_to_zone(
-        zone_id,
-        access_key_id,
-        secret_access_key,
-        host,
-        port,
-        protocol
-    )
-    if conn < 0:
-        print("connect_to_zone fail")
+    # get private_ip
+    instance_set = ret['instance_set']
+    if instance_set is None or len(instance_set) == 0:
+        print("describe_instances instance_set is None")
         exit(-1)
-    print("conn==%s" %(conn))
+    for instance in instance_set:
+        vxnets = instance.get("vxnets")
+        for vxnet in vxnets:
+            private_ip = vxnet.get("private_ip")
 
-    user_id=get_user_id()
-    if not user_id:
-        print("user_id is null")
-        exit(-1)
-
-def clone_instances(resource_id,vxnet_id,private_ips):
-    print("子线程启动")
-    print("clone_instances")
-    global conn
-    global g_cloned_instance_id
-    global g_cloned_instance_ip
-
-    print("resource_id == %s" % (resource_id))
-    print("private_ips == %s" %(private_ips))
-    for res_id in resource_id:
-        print("res_id == %s" % (res_id))
-        if not private_ips:
-            print("private_ips is null")
-            ret = conn.clone_instances(instances=[res_id])
-        else:
-            print("private_ips is not null")
-            # vxnets = ‘instance_id|vxnet_id|ip_addr’
-            instance_id = res_id
-            vxnet_id = vxnet_id
-            ip_addr = private_ips
-            vxnets_list = instance_id + "|" + vxnet_id + "|"+ ip_addr
-            print("vxnets_list == %s" %(vxnets_list))
-            ret = conn.clone_instances(instances=[res_id],vxnets = [vxnets_list])
-
-        # check ret_code
-        print("ret==%s" % (ret))
-        ret_code = ret.get("ret_code")
-        print("ret_code==%s" % (ret_code))
-        if ret_code != 0:
-            print("clone_instances failed")
-            exit(-1)
-
-        #get cloned_instance_id
-        g_cloned_instance_id = ret['instances']
-        print("g_cloned_instance_id=%s" %(g_cloned_instance_id))
-        if not g_cloned_instance_id:
-            print("clone instances fail")
-            exit(-1)
-
-        #check clone_instances status
-        status = "pending"
-        num = 0
-        while status != "running" and num <=180:
-            time.sleep(1)
-            status = get_instances_status()
-            num = num + 1
-            print("num=%d" %(num))
-        if status != "running":
-            print("clone_instances timeout")
-            exit(-1)
-
-    print("子线程结束")
-
-
-def get_instances_private_ip():
-    print("get_instances_private_ip")
-    global conn
-    global g_cloned_instance_id
-    ret = conn.describe_instances(instances=g_cloned_instance_id,verbose=1)
-    private_ip=""
-
-    # check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_instances failed")
-        exit(-1)
-
-    matched_instance = ret['instance_set']
-    print("matched_instance==%s"%(matched_instance))
-    if not matched_instance:
-        print("matched_instance is NULL")
-        exit(-1)
-
-    print("************************************")
-    wanted_instance = matched_instance[0]
-    print("wanted_instance==%s" % (wanted_instance))
-
-    print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-    if wanted_instance.get("vxnets",0):
-        vxnets = wanted_instance['vxnets']
-        print("vxnets==%s"%(vxnets))
-        private_ip = vxnets[0].get('private_ip',0)
-
-    print("private_ip=%s" % (private_ip))
+    print("private_ip == %s" %(private_ip))
     return private_ip
 
-
-def get_instances_status():
-    print("get_instances_status")
-    global conn
-    global g_cloned_instance_id
-    ret = conn.describe_instances(instances=g_cloned_instance_id)
-
-    # check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_instances failed")
-        exit(-1)
-
-    matched_instance = ret['instance_set']
-    print("matched_instance==%s"%(matched_instance))
-
-    print("************************************")
-
-    wanted_instance = matched_instance[0]
-    print("wanted_instance==%s" % (wanted_instance))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    status = wanted_instance.get("status")
-    print("status=%s" % (status))
-    return status
-
-
-
-def get_vxnet_id():
-    print("get_vxnet_id")
-    global conn
-    #查看基础网络vxnet_id
-    ret = conn.describe_vxnets(limit=1, vxnet_type=2)
-
-    # check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_vxnets failed")
-        exit(-1)
-
-    matched_vxnet = ret['vxnet_set']
-    print("matched_vxnet==%s" % (matched_vxnet))
-
-    print("************************************")
-
-    wanted_vxnet = matched_vxnet[0]
-    print("wanted_vxnet==%s" % (wanted_vxnet))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    vxnet_id = wanted_vxnet.get('vxnet_id')
-    print("vxnet_id=%s" % (vxnet_id))
-    return vxnet_id
-
-def explode_array(list_str, separator = ","):
-    ''' explode list string into array '''
-    if list_str is None:
-        return None
-    result = []
-    disk_list = list_str.split(separator)
-    for disk in disk_list:
-        disk = disk.strip()
-        if disk != "":
-
-            result.append(disk)
-    return result
-
-def get_clone_instance_ip():
+def clone_instances(conn,user_id,resource_id,vxnet_id,private_ips=None):
     print("子线程启动")
-    print("get_clone_instance_ip")
-    global g_cloned_instance_ip
-    private_ip = get_instances_private_ip()
-    while private_ip == "":
-        private_ip = get_instances_private_ip()
+    print("clone_instances resource_id == %s vxnet_id == %s private_ips == %s" % (resource_id,vxnet_id,private_ips))
+    if resource_id and not isinstance(resource_id, list):
+        resource_id = [resource_id]
+    print("resource_id == %s" %(resource_id))
+
+    if not private_ips:
+        print("private_ips is None")
+        # clone_instances
+        action = const.ACTION_CLONE_INSTANCES
+        print("action == %s" % (action))
+        vxnets_list = resource_id[0] + "|" + vxnet_id
+        print("vxnets_list == %s" %(vxnets_list))
+        ret = conn.clone_instances(instances=resource_id,vxnets=[vxnets_list])
+        print("clone_instances ret == %s" % (ret))
+        Common.check_ret_code(ret, action)
+    else:
+        print("private_ips is %s" %(private_ips))
+        # clone_instances
+        action = const.ACTION_CLONE_INSTANCES
+        print("action == %s" % (action))
+        vxnets_list = resource_id[0] + "|" + vxnet_id + "|" + private_ips
+        print("vxnets_list == %s" %(vxnets_list))
+        ret = conn.clone_instances(instances=resource_id,vxnets=[vxnets_list])
+        print("clone_instances ret == %s" % (ret))
+        Common.check_ret_code(ret, action)
+
+    job_id = ret['job_id']
+    instance_id = ret['instances']
+    cloned_instance_id = instance_id[0]
+    print("cloned_instance_id == %s" % (cloned_instance_id))
+    print("job_id == %s" % (job_id))
+    # check job status
+    num = 0
+    while num < 300:
+        num = num + 1
+        print("num == %d" % (num))
         time.sleep(1)
-    g_cloned_instance_ip = private_ip
-    print("g_cloned_instance_ip=%s" %(g_cloned_instance_ip))
+        status = Common.get_job_status(conn,job_id)
+        if status == "successful":
+            print("clone_instances successful")
+            break
+    print("status == %s" % (status))
+
+    if status == "successful":
+        print("clone_instances instance successful")
+
+        #cloned_instance_id 写入文件
+        cloned_instance_id_conf = "/opt/cloned_instance_id_conf"
+        with open(cloned_instance_id_conf, "w+") as f1:
+            f1.write("CLONED_INSTANCE_ID %s" %(cloned_instance_id))
+
+        # cloned_instance_id 写入文件
+        cloned_instance_ip = get_cloned_instance_ip(conn,instance_id)
+        num = 0
+        while num < 300:
+            num = num + 1
+            print("num == %d" % (num))
+            time.sleep(1)
+            cloned_instance_ip = get_cloned_instance_ip(conn, instance_id)
+            if cloned_instance_ip != "":
+                print("get_cloned_instance_ip successful")
+                break
+
+        print("cloned_instance_ip == %s" % (cloned_instance_ip))
+        cloned_instance_ip_conf = "/opt/cloned_instance_ip_conf"
+        with open(cloned_instance_ip_conf, "w+") as f1:
+            f1.write("CLONED_INSTANCE_IP %s" % (cloned_instance_ip))
+
     print("子线程结束")
-
-def get_user_id():
-    print("get_user_id")
-    global conn
-    global access_key_id
-    #查看access_keys详情
-    ret = conn.describe_access_keys(access_keys=[access_key_id])
-
-    # check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_access_keys failed")
-        exit(-1)
-
-    matched_access_key = ret['access_key_set']
-    print("matched_access_key==%s" % (matched_access_key))
-
-    print("************************************")
-
-    wanted_access_key = matched_access_key[0]
-    print("wanted_access_key==%s" % (wanted_access_key))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    user_id = wanted_access_key.get('owner')
-    print("user_id=%s" % (user_id))
-    return user_id
-
-
 
 if __name__ == "__main__":
     print("主线程启动")
@@ -259,6 +122,7 @@ if __name__ == "__main__":
     opt_parser = OptionParser()
     opt_parser.add_option("-z", "--zone_id", action="store", type="string", \
                           dest="zone_id", help='zone id', default="")
+
     opt_parser.add_option("-a", "--access_key_id", action="store", type="string", \
                           dest="access_key_id", help='access key id', default="")
 
@@ -273,8 +137,10 @@ if __name__ == "__main__":
 
     opt_parser.add_option("-P", "--protocol", action="store", type="string", \
                           dest="protocol", help='protocol', default="")
+
     opt_parser.add_option("-v", "--vxnet_id", action="store", type="string", \
                           dest="vxnet_id", help='vxnet id', default="")
+
     opt_parser.add_option("-r", "--resource_id", action="store", type="string", \
                           dest="resource_id", help='resource id', default="")
 
@@ -290,7 +156,7 @@ if __name__ == "__main__":
     port = options.port
     protocol = options.protocol
     vxnet_id = options.vxnet_id
-    resource_id = explode_array(options.resource_id or "")
+    resource_id = options.resource_id
     private_ips = options.private_ips
 
     print("zone_id:%s" % (zone_id))
@@ -303,37 +169,18 @@ if __name__ == "__main__":
     print("resource_id:%s" % (resource_id))
     print("private_ips:%s" % (private_ips))
 
-
     #连接iaas后台
-    connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    conn = Common.connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    print("connect_iaas conn == %s" % (conn))
 
+    # 获取账号ID
+    user_id = Common.get_user_id(conn,access_key_id)
+    print("get_user_id user_id == %s" % (user_id))
 
     #创建子线程--克隆主机
-    t1 = threading.Thread(target=clone_instances,args=(resource_id,vxnet_id,private_ips,))
+    t1 = threading.Thread(target=clone_instances,args=(conn,user_id,resource_id,vxnet_id,private_ips,))
     t1.start()
     t1.join()
-
-    if not g_cloned_instance_id:
-        print("clone instances fail")
-        exit(-1)
-
-    #创建子线程--获取克隆主机的私有网络IP
-    t2 = threading.Thread(target=get_clone_instance_ip)
-    t2.start()
-    t2.join()
-
-    instance_id = g_cloned_instance_id[0]
-    print("instance_id=%s" % (instance_id))
-    #instance_id 写入文件
-    cloned_instance_id_conf = "/opt/cloned_instance_id_conf"
-    with open(cloned_instance_id_conf, "w+") as f1:
-        f1.write("CLONED_INSTANCE_ID %s" %(instance_id))
-
-    # g_cloned_instance_ip 写入文件
-    cloned_instance_ip_conf = "/opt/cloned_instance_ip_conf"
-    with open(cloned_instance_ip_conf, "w+") as f1:
-        f1.write("CLONED_INSTANCE_IP %s" % (g_cloned_instance_ip))
-
 
     print("主线程结束")
 

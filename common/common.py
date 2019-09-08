@@ -102,4 +102,5 @@ def get_job_status(conn,job_id):
         return None
     for job in job_set:
         status = job.get("status")
+    print("status == %s" %(status))
     return status
