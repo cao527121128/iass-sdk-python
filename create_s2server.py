@@ -112,7 +112,7 @@ def create_s2_account_vdi_host(conn,user_id,g_vdi_ip_list):
         print("action == %s" % (action))
         s2_groups_list = [{"group_id":s2_group_id,"rw_flag":"rw"}]
         print("s2_groups_list == %s" % (s2_groups_list))
-        ret = conn.create_s2_account(account_name='vdi0-portal-account',account_type='NFS',nfs_ipaddr= vdi_ip,s2_group=s2_group_id,opt_parameters='squash=no_root_squash,sync=sync',s2_groups=s2_groups_list)
+        ret = conn.create_s2_account(account_name='vdi0-portal-account',account_type='NFS',nfs_ipaddr=vdi_ip,s2_group=s2_group_id,opt_parameters='squash=no_root_squash,sync=sync',s2_groups=s2_groups_list)
         print("create_s2_account ret == %s" % (ret))
         Common.check_ret_code(ret, action)
 
@@ -178,11 +178,9 @@ def create_new_volume(conn,user_id,volume_type):
 
     return volume_id
 
-def create_s2_shared_target(conn,user_id,vxnet_id,g_s2_server_id,instance_class):
+def create_s2_shared_target(conn,user_id,vxnet_id,s2_server_id,instance_class):
     print("子线程启动")
-    global g_s2_shared_target_id
-    global g_instance_class
-    print("create_s2_shared_target user_id == %s vxnet_id == %s g_s2_server_id == %s instance_class == %s" % (user_id,vxnet_id,g_s2_server_id,instance_class))
+    print("create_s2_shared_target user_id == %s vxnet_id == %s s2_server_id == %s instance_class == %s" % (user_id,vxnet_id,s2_server_id,instance_class))
 
     # get the volume_type corresponding to the instance class
     volume_type = const.INSTANCE_CLASS_VOLUME_TYPE_MAP[instance_class]
@@ -202,7 +200,7 @@ def create_s2_shared_target(conn,user_id,vxnet_id,g_s2_server_id,instance_class)
     # CreateS2SharedTarget
     action = const.ACTION_CREATE_S2_SHARED_TARGET
     print("action == %s" % (action))
-    ret = conn.create_s2_shared_target(owner=user_id,vxnet=vxnet_id,s2_server_id=g_s2_server_id,target_type='NFS',export_name_nfs='nas',export_name='/mnt/nas',volumes=volume_id)
+    ret = conn.create_s2_shared_target(owner=user_id,vxnet=vxnet_id,s2_server_id=s2_server_id,target_type='NFS',export_name_nfs='nas',export_name='/mnt/nas',volumes=volume_id)
     print("create_s2_shared_target ret == %s" % (ret))
     Common.check_ret_code(ret, action)
 
@@ -345,7 +343,6 @@ if __name__ == "__main__":
     t.start()
     t.join()
 
-    print("g_s2_server_id == %s" % (g_s2_server_id))
     if g_s2_server_id:
 
         #创建子线程--新建共享存储目标
