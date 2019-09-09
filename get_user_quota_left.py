@@ -12,95 +12,31 @@ import time
 from optparse import OptionParser
 import sys
 import os
+import qingcloud.iaas.constants as const
+import common.common as Common
 
-# global
-zone_id = None
-conn=None
-access_key_id = None
-secret_access_key = None
-host = None
-port = None
-protocol = None
-resource_id = None
+def get_user_quota_left(resource_type,user_id,conn):
+    print("get_user_quota_left resource_type == %s user_id == %s" % (resource_type,user_id))
+    if resource_type and not isinstance(resource_type, list):
+        resource_type = [resource_type]
+    print("resource_type == %s" %(resource_type))
+    resource_type_left = 0
 
+    # GetQuotaLeft
+    action = const.ACTION_GET_QUOTA_LEFT
+    print("action == %s" % (action))
+    ret = conn.get_quota_left(resource_types=resource_type, owner=user_id)
+    print("get_quota_left ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
 
-
-def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
-    print("connect_iaas")
-    print("starting connect_to_zone ...")
-    global conn
-    conn = qingcloud.iaas.connect_to_zone(
-        zone_id,
-        access_key_id,
-        secret_access_key,
-        host,
-        port,
-        protocol
-    )
-    if conn < 0:
-        print("connect_to_zone fail")
+    quota_left_set = ret['quota_left_set']
+    if quota_left_set is None or len(quota_left_set) == 0:
+        print("get_quota_left quota_left_set is None")
         exit(-1)
-    print("conn==%s" %(conn))
+    for quota_left in quota_left_set:
+        resource_type_left = quota_left.get("left")
 
-    # user_id=get_user_id()
-    # if not user_id:
-    #     print("user_id is null")
-    #     exit(-1)
-
-def get_user_id():
-    print("get_user_id")
-    global conn
-    global access_key_id
-    #查看access_keys详情
-    ret = conn.describe_access_keys(access_keys=[access_key_id])
-
-    # check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_access_keys failed")
-        exit(-1)
-
-    matched_access_key = ret['access_key_set']
-    print("matched_access_key==%s" % (matched_access_key))
-
-    print("************************************")
-
-    wanted_access_key = matched_access_key[0]
-    print("wanted_access_key==%s" % (wanted_access_key))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    user_id = wanted_access_key.get('owner')
-    print("user_id=%s" % (user_id))
-    return user_id
-
-
-def get_user_quota_left(resource_type,user_id):
-    print("get_user_quota_left")
-    global conn
-
-    #查看用户配额剩余
-    ret = conn.get_quota_left(resource_types=[resource_type], owner=user_id)
-    # check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("get_quota_left failed")
-        exit(-1)
-
-    print("************************************")
-    quota_left_set = ret.get("quota_left_set")
-    print("quota_left_set==%s" % (quota_left_set))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    resource_type_left = quota_left_set[0].get("left")
-    print("resource_type_left==%d" % (resource_type_left))
     return resource_type_left
-
-
-
 
 if __name__ == "__main__":
     print("主线程启动")
@@ -109,6 +45,7 @@ if __name__ == "__main__":
     opt_parser = OptionParser()
     opt_parser.add_option("-z", "--zone_id", action="store", type="string", \
                           dest="zone_id", help='zone id', default="")
+
     opt_parser.add_option("-a", "--access_key_id", action="store", type="string", \
                           dest="access_key_id", help='access key id', default="")
 
@@ -139,29 +76,29 @@ if __name__ == "__main__":
     print("protocol:%s" % (protocol))
 
     #连接iaas后台
-    connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    conn = Common.connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    print("connect_iaas conn == %s" % (conn))
 
-    user_id = get_user_id()
-    if not user_id:
-        print("user_id is null")
-        exit(-1)
+    # 获取账号ID
+    user_id = Common.get_user_id(conn,access_key_id)
+    print("get_user_id user_id == %s" % (user_id))
 
-    rdb_quota_left = get_user_quota_left('rdb',user_id)
+    rdb_quota_left = get_user_quota_left('rdb',user_id,conn)
     print("rdb_quota_left=%d" %(rdb_quota_left))
 
-    cache_quota_left = get_user_quota_left('cache', user_id)
+    cache_quota_left = get_user_quota_left('cache', user_id,conn)
     print("cache_quota_left=%d" % (cache_quota_left))
 
-    instance_quota_left = get_user_quota_left('instance', user_id)
+    instance_quota_left = get_user_quota_left('instance', user_id,conn)
     print("instance_quota_left=%d" % (instance_quota_left))
 
-    loadbalancer_quota_left = get_user_quota_left('loadbalancer', user_id)
+    loadbalancer_quota_left = get_user_quota_left('loadbalancer', user_id,conn)
     print("loadbalancer_quota_left=%d" % (loadbalancer_quota_left))
 
-    s2_server_quota_left = get_user_quota_left('s2_server', user_id)
+    s2_server_quota_left = get_user_quota_left('s2_server', user_id,conn)
     print("s2_server_quota_left=%d" % (s2_server_quota_left))
 
-    cluster_quota_left = get_user_quota_left('cluster', user_id)
+    cluster_quota_left = get_user_quota_left('cluster', user_id,conn)
     print("cluster_quota_left=%d" % (cluster_quota_left))
 
     # rdb_quota_left 写入文件
