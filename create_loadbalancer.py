@@ -628,6 +628,7 @@ if __name__ == "__main__":
     opt_parser = OptionParser()
     opt_parser.add_option("-z", "--zone_id", action="store", type="string", \
                           dest="zone_id", help='zone id', default="")
+
     opt_parser.add_option("-a", "--access_key_id", action="store", type="string", \
                           dest="access_key_id", help='access key id', default="")
 
@@ -642,12 +643,16 @@ if __name__ == "__main__":
 
     opt_parser.add_option("-P", "--protocol", action="store", type="string", \
                           dest="protocol", help='protocol', default="")
+
     opt_parser.add_option("-v", "--vxnet_id", action="store", type="string", \
                           dest="vxnet_id", help='vxnet id', default="")
+
     opt_parser.add_option("-e", "--eip_id", action="store", type="string", \
                           dest="eip_id", help='eip id', default="")
+
     opt_parser.add_option("-r", "--resource_id", action="store", type="string", \
                           dest="resource_id", help='resource id', default="")
+
     opt_parser.add_option("-F", "--platform", action="store", type="string", \
                           dest="platform", help='platform', default="")
 
@@ -657,9 +662,8 @@ if __name__ == "__main__":
     opt_parser.add_option("-l", "--vdi_portal_loadbalancer_ip", action="store", type="string", \
                           dest="vdi_portal_loadbalancer_ip", help='vdi_portal loadbalancer ip', default="")
 
-
-
     (options, _) = opt_parser.parse_args(sys.argv)
+
     zone_id = options.zone_id
     access_key_id = options.access_key_id
     secret_access_key = options.secret_access_key
@@ -675,6 +679,7 @@ if __name__ == "__main__":
         platform = options.platform
     private_ips = options.private_ips
     vdi_portal_loadbalancer_ip = options.vdi_portal_loadbalancer_ip
+
     print("zone_id:%s" % (zone_id))
     print("access_key_id:%s" % (access_key_id))
     print("secret_access_key:%s" % (secret_access_key))
@@ -689,9 +694,12 @@ if __name__ == "__main__":
     print("vdi_portal_loadbalancer_ip:%s" % (vdi_portal_loadbalancer_ip))
 
     #连接iaas后台
-    connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    conn = Common.connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    print("connect_iaas conn == %s" % (conn))
 
-
+    # 获取账号ID
+    user_id = Common.get_user_id(conn,access_key_id)
+    print("get_user_id user_id == %s" % (user_id))
 
     #获取eip_id
     if eip_id:
@@ -715,8 +723,6 @@ if __name__ == "__main__":
         t = threading.Thread(target=check_loadbalancer,args=(vdi_portal_loadbalancer_ip,))
         t.start()
         t.join()
-
-
 
     if not g_vdi_portal_loadbalancer_ip_flag:
         print("loadbalancer is not exist,you need create new loadbalancer")
