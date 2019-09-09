@@ -12,195 +12,170 @@ import time
 from optparse import OptionParser
 import sys
 import os
+import qingcloud.iaas.constants as const
+import common.common as Common
 
-# global
-zone_id = None
-conn=None
-access_key_id = None
-secret_access_key = None
-host = None
-port = None
-protocol = None
-vxnet_id = None
-g_instance_id = None
-g_ip_resources_is_released = False
+def leave_vxnet(conn,instance_id,user_id):
+    print("leave_vxnet instance_id == %s user_id == %s" %(instance_id,user_id))
 
+    if instance_id and not isinstance(instance_id, list):
+        instance_id = [instance_id]
+    # DescribeInstances
+    action = const.ACTION_DESCRIBE_INSTANCES
+    print("action == %s" % (action))
+    ret = conn.describe_instances(instances=instance_id,owner=user_id,verbose=1)
+    print("describe_instances ret == %s" % (ret))
+    Common.check_ret_code(ret,action)
 
-
-def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
-    print("connect_iaas")
-    print("starting connect_to_zone ...")
-    global conn
-    conn = qingcloud.iaas.connect_to_zone(
-        zone_id,
-        access_key_id,
-        secret_access_key,
-        host,
-        port,
-        protocol
-    )
-    if conn < 0:
-        print("connect_to_zone fail")
+    # get vxnet_id
+    instance_set = ret['instance_set']
+    if instance_set is None or len(instance_set) == 0:
+        print("describe_instances instance_set is None")
         exit(-1)
-    print("conn==%s" %(conn))
+    for instance in instance_set:
+        vxnets = instance.get("vxnets")
+        for vxnet in vxnets:
+            vxnet_id = vxnet.get("vxnet_id")
+            print("vxnet_id == %s" % (vxnet_id))
 
-    user_id=get_user_id()
-    if not user_id:
-        print("user_id is null")
-        exit(-1)
+    # LeaveVxnet
+    action = const.ACTION_LEAVE_VXNET
+    print("action == %s" % (action))
+    ret = conn.leave_vxnet(instances=instance_id,vxnet=vxnet_id,owner=user_id)
+    print("leave_vxnet ret == %s" % (ret))
+    Common.check_ret_code(ret,action)
 
-
-def get_user_id():
-    print("get_user_id")
-    global conn
-    global access_key_id
-    #查看access_keys详情
-    ret = conn.describe_access_keys(access_keys=[access_key_id])
-
-    # check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-   #print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_access_keys failed")
-        exit(-1)
-
-    matched_access_key = ret['access_key_set']
-   # print("matched_access_key==%s" % (matched_access_key))
-
-    #print("************************************")
-
-    wanted_access_key = matched_access_key[0]
-    #print("wanted_access_key==%s" % (wanted_access_key))
-
-    #print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    user_id = wanted_access_key.get('owner')
-    #print("user_id=%s" % (user_id))
-    return user_id
-
-def describe_instances(private_ips):
-    print("子线程启动")
-    print("describe_instances")
-    global conn
-    global access_key_id
-    global g_instance_id
-    user_id = get_user_id()
-
-    print("private_ips == %s" %(private_ips))
-    ret = conn.describe_instances(offset=0, limit=100, search_word=private_ips,owner=user_id)
-
-    # check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_instances failed")
-        exit(-1)
-
-    #get total
-    total_count = ret.get('total_count')
-    print("total_count == %d" %(total_count))
-    if not total_count:
-        print("total_count == %d" % (total_count))
-        print("instances with private_ips:%s is not exist" %(private_ips))
-        print("you can create  instances with this private_ip %s" %(private_ips))
-
-    else:
-        print("total_count == %d" % (total_count))
-        print("instances with private_ips:%s is exist" %(private_ips))
-        print("you can't create instances with this private_ip %s" %(private_ips))
-
-        #查询对应主机id
-        matched_instance = ret['instance_set']
-        #print("matched_instance==%s" % (matched_instance))
-
-        #print("************************************")
-
-        wanted_instance = matched_instance[0]
-        #print("wanted_instance==%s" % (wanted_instance))
-
-        #print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-        g_instance_id = wanted_instance.get("instance_id")
-        print("g_instance_id=%s" % (g_instance_id))
-
-    print("子线程结束")
-
-def terminate_instances(private_ips,vxnet_id):
-    print("子线程启动")
-    print("terminate_instances")
-    global conn
-    global access_key_id
-    global g_instance_id
-    global g_ip_resources_is_released
-
-    user_id = get_user_id()
-    print("private_ips == %s" %(private_ips))
-    print("vxnet_id == %s" %(vxnet_id))
-
-    #terminate_instances
-    ret = conn.terminate_instances(instances=[g_instance_id],direct_cease=1)
-    print("ret==%s" % (ret))
-
-    time.sleep(5)
-    #describe_instances
-    ret = conn.describe_instances(offset=0, limit=100, instances=[g_instance_id], owner=user_id)
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_instances failed")
-        exit(-1)
-
-    #Check if iP resources are released
-    ip_resources_is_released = True
+    # check job status
+    job_id = ret['job_id']
+    print("job_id == %s" % (job_id))
     num = 0
-    total_count = 0
-    while ip_resources_is_released:
-
-        # terminate_instances
-        ret = conn.terminate_instances(instances=[g_instance_id], direct_cease=1)
-        print("ret==%s" % (ret))
-
-        total_count = get_check_private_ip(vxnet_id,private_ips)
-        print("num = %d" % (num))
-        print("total_count = %d" % (total_count))
-        if total_count == 0:
-            g_ip_resources_is_released = True
-            break
+    while num < 300:
         num = num + 1
-        if num > 30:
+        print("num == %d" % (num))
+        time.sleep(1)
+        status = Common.get_job_status(conn, job_id)
+        if status == "successful":
+            print("leave_vxnet successful")
             break
-        time.sleep(5)
+    print("status == %s" % (status))
 
-    print("total_count = %d" % (total_count))
-    print("g_ip_resources_is_released = %d" % (g_ip_resources_is_released))
-    print("子线程结束")
+    return vxnet_id
 
+def get_check_private_ip(vxnet_id,private_ips,user_id):
+    print("get_check_private_ip vxnet_id == %s private_ips == %s user_id == %s" %(vxnet_id,private_ips,user_id))
 
-
-def get_check_private_ip(vxnet_id,private_ips):
-    print("get_check_private_ip")
-    global conn
-
-
-    user_id = get_user_id()
-    print("user_id==%s" %(user_id))
-    print("vxnet_id==%s" % (vxnet_id))
-    print("private_ips==%s" % (private_ips))
-
-    ret = conn.describe_vxnet_resources(vxnet=vxnet_id, offset=0, limit=100, search_word=private_ips,owner=user_id)
-    print("ret==%s" % (ret))
-    # check ret_code
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_vxnet_resources failed")
-        exit(-1)
+    # DescribeVxnetResources
+    action = const.ACTION_DESCRIBE_VXNET_RESOURCES
+    print("action == %s" % (action))
+    ret = conn.describe_vxnet_resources(vxnet=vxnet_id, offset=0, limit=100, search_word=private_ips, owner=user_id)
+    print("describe_vxnet_resources ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
 
     #get total
     total_count = ret.get('total_count')
     print("total_count == %d" %(total_count))
     return total_count
+
+def check_instance_ip_resource_is_released(conn,user_id,instance_id):
+    print("check_instance_ip_resource_is_released user_id == %s instance_id == %s" % (user_id,instance_id))
+
+    if instance_id and not isinstance(instance_id, list):
+        instance_id = [instance_id]
+    ip_resources_is_released = False
+
+    # check ip resources is released
+    num = 0
+    while num < 300:
+        num = num + 1
+        print("num == %d" % (num))
+        time.sleep(1)
+        total_count = get_check_private_ip(vxnet_id, private_ips,user_id)
+        if total_count == 0:
+            print("ip_resources_is_released successful")
+            ip_resources_is_released = True
+            break
+
+    print("ip_resources_is_released == %s" % (ip_resources_is_released))
+    return ip_resources_is_released
+
+def describe_instances_by_private_ip(conn,user_id,private_ips=None):
+    print("describe_instances_by_private_ip user_id == %s private_ips == %s" %(user_id,private_ips))
+
+    instance_id = ""
+    # DescribeInstances
+    action = const.ACTION_DESCRIBE_INSTANCES
+    print("action == %s" % (action))
+    ret = conn.describe_instances(offset=0, limit=100, search_word=private_ips, owner=user_id)
+    print("describe_instances ret == %s" % (ret))
+    Common.check_ret_code(ret,action)
+
+    #get instance_id
+    total_count = ret.get('total_count')
+    print("total_count == %d" %(total_count))
+    if not total_count:
+        print("The instances with private_ips:%s is deleted" %(private_ips))
+    else:
+        print("The instances with private_ips:%s is running" % (private_ips))
+        instance_set = ret['instance_set']
+        if instance_set is None or len(instance_set) == 0:
+            print("describe_instances instance_set is None")
+            exit(-1)
+        for instance in instance_set:
+            instance_id = instance.get("instance_id")
+
+    return instance_id
+
+def terminate_instances(conn,instance_id,user_id,private_ips):
+    print("子线程启动")
+    print("terminate_instances instance_id == %s user_id == %s" % (instance_id,user_id))
+
+    if instance_id and not isinstance(instance_id, list):
+        instance_id = [instance_id]
+
+    # TerminateInstances
+    action = const.ACTION_TERMINATE_INSTANCES
+    print("action == %s" % (action))
+    ret = conn.terminate_instances(instances=instance_id,owner=user_id,direct_cease=1)
+    print("terminate_instances ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
+
+    # check job status
+    job_id = ret['job_id']
+    print("job_id == %s" % (job_id))
+    num = 0
+    while num < 300:
+        num = num + 1
+        print("num == %d" % (num))
+        time.sleep(1)
+        status = Common.get_job_status(conn,job_id)
+        if status == "successful":
+            print("terminate_instances successful")
+            break
+    print("status == %s" % (status))
+
+    # Result is written to file
+    if status == "successful":
+        print("terminate_instances instances successful")
+
+        # Check if iP resources are released
+        ret = check_instance_ip_resource_is_released(conn,user_id,instance_id)
+        print("check_instance_ip_resource_is_released ret == %s" %(ret))
+
+        if ret:
+            #test run_instances with private_ip
+            # RunInstances
+            # action = const.ACTION_RUN_INSTANCES
+            # print("action == %s" % (action))
+            # ret = conn.run_instances(image_id="xenial5x64b",owner=user_id,vxnets=["vxnet-za3ludg|192.168.15.140"],instance_name="test123",instance_type="c2m4",login_mode="keypair",login_keypair="kp-2vn9i17f")
+            # print("run_instances ret == %s" % (ret))
+            # Common.check_ret_code(ret, action)
+
+            # terminal_cloned_instance 写入文件
+            terminal_cloned_instance_conf = "/opt/terminal_cloned_instance_conf"
+            with open(terminal_cloned_instance_conf, "w+") as f1:
+                f1.write("TERMINAL_CLONED_INSTANCE_IP %s" % (private_ips))
+
+    print("子线程结束")
 
 if __name__ == "__main__":
     print("主线程启动")
@@ -251,37 +226,34 @@ if __name__ == "__main__":
     print("vxnet_id:%s" % (vxnet_id))
     print("private_ips:%s" % (private_ips))
 
-
     #连接iaas后台
-    connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    conn = Common.connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    print("connect_iaas conn == %s" % (conn))
 
+    # 获取账号ID
+    user_id = Common.get_user_id(conn,access_key_id)
+    print("get_user_id user_id == %s" % (user_id))
 
-    #创建子线程--按照关键字private_ips查询 对应主机是否存在
-    t = threading.Thread(target=describe_instances,args=(private_ips,))
-    t.start()
-    t.join()
-
-
-    if not g_instance_id:
-        # terminal_cloned_instance 写入文件  不存在private_ip对应的主机
-        terminal_cloned_instance_conf = "/opt/terminal_cloned_instance_conf"
-        with open(terminal_cloned_instance_conf, "w+") as f1:
-            f1.write("TERMINAL_CLONED_INSTANCE_IP None")
-
-
-    #创建子线程--删除已经绑定private_ips的主机 释放ip资源
-    if g_instance_id:
-        t1 = threading.Thread(target=terminate_instances,args=(private_ips,vxnet_id,))
+    #按照关键字private_ips查询 对应主机是否存在
+    instance_id = describe_instances_by_private_ip(conn,user_id,private_ips)
+    if instance_id:
+        print("instance with private_ips:%s is running" % (private_ips))
+        # 创建子线程--先释放主机的ip资源  离开网络
+        t1 = threading.Thread(target=leave_vxnet, args=(conn,instance_id,user_id,))
         t1.start()
         t1.join()
 
-    if g_ip_resources_is_released:
+        # 创建子线程--删除已经绑定private_ips的主机
+        t2 = threading.Thread(target=terminate_instances, args=(conn,instance_id,user_id,private_ips,))
+        t2.start()
+        t2.join()
+
+    else:
+        print("instance with private_ips:%s is deleted" % (private_ips))
         # terminal_cloned_instance 写入文件
         terminal_cloned_instance_conf = "/opt/terminal_cloned_instance_conf"
         with open(terminal_cloned_instance_conf, "w+") as f1:
-            f1.write("TERMINAL_CLONED_INSTANCE_IP %s" % (private_ips))
-
-
+            f1.write("TERMINAL_CLONED_INSTANCE_IP None")
 
     print("主线程结束")
 
