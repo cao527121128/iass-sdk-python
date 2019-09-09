@@ -12,103 +12,33 @@ import time
 from optparse import OptionParser
 import sys
 import os
+import qingcloud.iaas.constants as const
+import common.common as Common
 
-# global
-zone_id = None
-conn=None
-access_key_id = None
-secret_access_key = None
-host = None
-port = None
-protocol = None
-resource_id = None
+def get_instance_vxnet_id(conn,resource_id):
+    print("get_instance_vxnet_id resource_id == %s" % (resource_id))
+    if resource_id and not isinstance(resource_id, list):
+        resource_id = [resource_id]
+    print("resource_id == %s" %(resource_id))
+    vxnet_id = ""
 
-
-
-def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
-    print("connect_iaas")
-    print("starting connect_to_zone ...")
-    global conn
-    conn = qingcloud.iaas.connect_to_zone(
-        zone_id,
-        access_key_id,
-        secret_access_key,
-        host,
-        port,
-        protocol
-    )
-    if conn < 0:
-        print("connect_to_zone fail")
-        exit(-1)
-    print("conn==%s" %(conn))
-
-    user_id=get_user_id()
-    if not user_id:
-        print("user_id is null")
-        exit(-1)
-
-def get_user_id():
-    print("get_user_id")
-    global conn
-    global access_key_id
-    #查看access_keys详情
-    ret = conn.describe_access_keys(access_keys=[access_key_id])
-
-    # check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_access_keys failed")
-        exit(-1)
-
-    matched_access_key = ret['access_key_set']
-    print("matched_access_key==%s" % (matched_access_key))
-
-    print("************************************")
-
-    wanted_access_key = matched_access_key[0]
-    print("wanted_access_key==%s" % (wanted_access_key))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    user_id = wanted_access_key.get('owner')
-    print("user_id=%s" % (user_id))
-    return user_id
-
-
-def get_instance_vxnet_id(resource_id):
-    print("get_instance_vxnet_id")
-    global conn
-
-    #查看主机的基础网络vxnet_id
-    ret = conn.describe_instances(instances=[resource_id],verbose=1)
-    # check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_instances failed")
-        exit(-1)
+    # DescribeInstances
+    action = const.ACTION_DESCRIBE_INSTANCES
+    print("action == %s" % (action))
+    ret = conn.describe_instances(instances=resource_id, verbose=1)
+    print("describe_instances ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
 
     instance_set = ret['instance_set']
-    # print("instance_set==%s" % (instance_set))
+    if instance_set is None or len(instance_set) == 0:
+        print("describe_instances instance_set is None")
+        exit(-1)
+    for instance in instance_set:
+        vxnets = instance.get("vxnets")
+        for vxnet in vxnets:
+            vxnet_id = vxnet.get("vxnet_id")
 
-    print("************************************")
-    #
-    wanted_instance = instance_set[0]
-    print("wanted_instance==%s" % (wanted_instance))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    vxnets = wanted_instance.get("vxnets")
-    print("vxnets=%s" %(vxnets))
-
-    print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-    vxnet_id = vxnets[0].get("vxnet_id")
-    print("vxnet_id=%s" %(vxnet_id))
     return vxnet_id
-
-
-
 
 if __name__ == "__main__":
     print("主线程启动")
@@ -117,6 +47,7 @@ if __name__ == "__main__":
     opt_parser = OptionParser()
     opt_parser.add_option("-z", "--zone_id", action="store", type="string", \
                           dest="zone_id", help='zone id', default="")
+
     opt_parser.add_option("-a", "--access_key_id", action="store", type="string", \
                           dest="access_key_id", help='access key id', default="")
 
@@ -135,7 +66,6 @@ if __name__ == "__main__":
     opt_parser.add_option("-r", "--resource_id", action="store", type="string", \
                           dest="resource_id", help='resource id', default="")
 
-
     (options, _) = opt_parser.parse_args(sys.argv)
     zone_id = options.zone_id
     access_key_id = options.access_key_id
@@ -152,18 +82,18 @@ if __name__ == "__main__":
     print("protocol:%s" % (protocol))
     print("resource_id:%s" % (resource_id))
 
-
     #连接iaas后台
-    connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    conn = Common.connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    print("connect_iaas conn == %s" % (conn))
 
-    instance_vxnet_id = get_instance_vxnet_id(resource_id)
-    print("instance_vxnet_id=%s" %(instance_vxnet_id))
+    instance_vxnet_id = get_instance_vxnet_id(conn,resource_id)
+    print("get_instance_vxnet_id instance_vxnet_id=%s" %(instance_vxnet_id))
 
-    # instance_vxnet_id 写入文件
-    instance_vxnet_id_conf = "/opt/instance_vxnet_id_conf"
-    with open(instance_vxnet_id_conf, "w+") as f1:
-        f1.write("INSTANCE_VXNET_ID %s" % (instance_vxnet_id))
-
+    if instance_vxnet_id:
+        # instance_vxnet_id 写入文件
+        instance_vxnet_id_conf = "/opt/instance_vxnet_id_conf"
+        with open(instance_vxnet_id_conf, "w+") as f1:
+            f1.write("INSTANCE_VXNET_ID %s" % (instance_vxnet_id))
 
     print("主线程结束")
 
