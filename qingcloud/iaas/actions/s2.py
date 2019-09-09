@@ -483,6 +483,7 @@ class S2Action(object):
         return self.conn.send_request(action, body)
 
     def describe_s2_groups(self,
+                           owner=None,
                            s2_groups=None,
                            group_types=None,
                            group_name=None,
@@ -492,7 +493,7 @@ class S2Action(object):
                            limit=None,
                            **ignore):
         """ Describe S2 groups
-
+        :param owner: user_id.
         :param s2_groups: the IDs of s2 groups.
         :param group_types: valid values is NFS_GROUP or SMB_GROUP.
         :param group_name: the name of group.
@@ -503,7 +504,7 @@ class S2Action(object):
         """
         action = const.ACTION_DESCRIBE_S2_GROUPS
         valid_keys = [
-            's2_groups', 'group_types', 'account_name', 'search_word',
+            'owner','s2_groups', 'group_types', 'account_name', 'search_word',
             'verbose', 'offset', 'limit',
         ]
         body = filter_out_none(locals(), valid_keys)
