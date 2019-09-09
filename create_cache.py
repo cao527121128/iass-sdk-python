@@ -12,229 +12,85 @@ import time
 from optparse import OptionParser
 import sys
 import os
+import qingcloud.iaas.constants as const
+import common.common as Common
 
-# global
-zone_id = None
-conn=None
-access_key_id = None
-secret_access_key = None
-host = None
-port = None
-protocol = None
-vxnet_id = None
-g_cache_id = None
+def get_memcached_ip(conn,cache_id):
+    print("get_memcached_ip cache_id == %s" % (cache_id))
+    if cache_id and not isinstance(cache_id, list):
+        cache_id = [cache_id]
+    print("cache_id == %s" %(cache_id))
+    private_ip = ""
 
+    # DescribeCaches
+    action = const.ACTION_DESCRIBE_CACHES
+    print("action == %s" % (action))
+    ret = conn.describe_caches(caches=cache_id, verbose=1)
+    print("describe_caches ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
 
-
-
-
-def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
-    print("connect_iaas")
-    print("starting connect_to_zone ...")
-    global conn
-    conn = qingcloud.iaas.connect_to_zone(
-        zone_id,
-        access_key_id,
-        secret_access_key,
-        host,
-        port,
-        protocol
-    )
-    if conn < 0:
-        print("connect_to_zone fail")
+    cache_set = ret['cache_set']
+    if cache_set is None or len(cache_set) == 0:
+        print("describe_caches cache_set is None")
         exit(-1)
-    print("conn==%s" %(conn))
+    for cache in cache_set:
+        nodes = cache.get("nodes")
+        for node in nodes:
+            private_ip = node.get("private_ip")
 
-    user_id=get_user_id()
-    if not user_id:
-        print("user_id is null")
-        exit(-1)
+    return private_ip
 
-def create_cache(vxnet_id,private_ips):
+
+def create_cache(conn,user_id,vxnet_id,private_ips=None):
     print("子线程启动")
-    print("create_cache")
-    global conn
-    global g_cache_id
+    print("create_cache user_id == %s vxnet_id == %s private_ips == %s" % (user_id,vxnet_id,private_ips))
 
-    #create_cache
-    print("private_ips == %s" % (private_ips))
     if not private_ips:
-        print("private_ips is null")
-        ret = conn.create_cache(
-            # vxnet='vxnet-glp08w9',
-            vxnet=vxnet_id,
-            cache_size=1,
-            cache_type='memcached1.4.13',
-            cache_name='vdi-portal-memcached'
-        )
+        print("private_ips is None")
+        # CreateCache
+        action = const.ACTION_CREATE_CACHE
+        print("action == %s" % (action))
+        ret = conn.create_cache(vxnet=vxnet_id,cache_size=1,cache_type='memcached1.4.13',cache_name='vdi-portal-memcached')
+        print("create_cache ret == %s" % (ret))
+        Common.check_ret_code(ret, action)
     else:
-        print("private_ips is not null")
-        #private_ips = [{"cache_role":"master","private_ips":"10.11.12.52"}]
+        print("private_ips is %s" %(private_ips))
+        # CreateCache
+        action = const.ACTION_CREATE_CACHE
+        print("action == %s" % (action))
         private_ips_list = {"cache_role": "master", "private_ips": private_ips}
-        print("private_ips_list == %s" % (private_ips_list))
-        ret = conn.create_cache(
-            # vxnet='vxnet-glp08w9',
-            vxnet=vxnet_id,
-            cache_size=1,
-            cache_type='memcached1.4.13',
-            cache_name='vdi-portal-memcached',
-            private_ips=[private_ips_list]
-        )
+        ret = conn.create_cache(vxnet=vxnet_id,cache_size=1,cache_type='memcached1.4.13',cache_name='vdi-portal-memcached',private_ips=[private_ips_list])
+        print("create_cache ret == %s" % (ret))
+        Common.check_ret_code(ret, action)
 
-    #check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code!=0:
-        print("create_cache failed")
-        exit(-1)
-
-    #get cache_id
-    g_cache_id = ret.get("cache_id")
-    print("g_cache_id=%s" % (g_cache_id))
-    if not g_cache_id:
-        print("create cache fail")
-        exit(-1)
-
-    #check create_cache status
-    status = "pending"
+    job_id = ret['job_id']
+    cache_id = ret['cache_id']
+    print("job_id == %s" % (job_id))
+    print("cache_id == %s" % (cache_id))
+    # check job status
     num = 0
-    while status != "active" and num <= 120:
-        time.sleep(1)
-        status = get_cache_status()
+    while num < 300:
         num = num + 1
-        print("num=%d" %(num))
+        print("num == %d" % (num))
+        time.sleep(1)
+        status = Common.get_job_status(conn,job_id)
+        if status == "successful":
+            print("create_cache successful")
+            break
+    print("status == %s" % (status))
 
-    if status!="active":
-        print("create_cache timeout")
-        exit(-1)
+    if status == "successful":
+        print("create_cache cache successful")
+
+        #memcached_ip 写入文件
+        memcached_ip_conf = "/opt/memcached_ip_conf"
+        memcached_ip = get_memcached_ip(conn,cache_id)
+        print("get_memcached_ip memcached_ip == %s" %(memcached_ip))
+        if memcached_ip:
+            with open(memcached_ip_conf, "w+") as f1:
+                f1.write("MEMCACHED_ADDRESS %s" %(memcached_ip))
+
     print("子线程结束")
-
-
-
-
-def get_cache_status():
-    print("get_cache_status")
-    global conn
-    global g_cache_id
-    ret = conn.describe_caches(caches=[g_cache_id],verbose=1)
-
-    #check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code!=0:
-        print("describe_caches failed")
-        exit(-1)
-
-
-    matched_cache = ret['cache_set']
-    print("matched_cache==%s"%(matched_cache))
-
-    print("************************************")
-
-    wanted_cache = matched_cache[0]
-    print("wanted_cache==%s" % (wanted_cache))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    status = wanted_cache.get('status')
-    print("status=%s" % (status))
-    return status
-
-
-
-def get_memcached_ip():
-    print("get_memcached_ip")
-    global conn
-    global g_cache_id
-    ret = conn.describe_caches(caches=[g_cache_id], verbose=1)
-    memcached_ip = ""
-
-    #check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code!=0:
-        print("describe_caches failed")
-        exit(-1)
-
-    matched_cache = ret['cache_set']
-    print("matched_cache==%s"%(matched_cache))
-    if not matched_cache:
-        print("matched_cache is NULL")
-        exit(-1)
-
-    print("************************************")
-    wanted_cache = matched_cache[0]
-    print("wanted_cache==%s" % (wanted_cache))
-
-    print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-    if wanted_cache.get("nodes",0):
-        nodes = wanted_cache['nodes']
-        print("nodes==%s"%(nodes))
-
-
-        print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-        memcached_ip = nodes[0].get('private_ip',0)
-
-    print("memcached_ip=%s" % (memcached_ip))
-    return memcached_ip
-
-def get_vxnet_id():
-    print("get_vxnet_id")
-    global conn
-    #查看基础网络vxnet_id
-    ret = conn.describe_vxnets(limit=1, vxnet_type=2)
-
-    #check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code!=0:
-        print("describe_vxnets failed")
-        exit(-1)
-
-    matched_vxnet = ret['vxnet_set']
-    print("matched_vxnet==%s" % (matched_vxnet))
-
-    print("************************************")
-
-    wanted_vxnet = matched_vxnet[0]
-    print("wanted_vxnet==%s" % (wanted_vxnet))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    vxnet_id = wanted_vxnet.get('vxnet_id')
-    print("vxnet_id=%s" % (vxnet_id))
-    return vxnet_id
-
-def get_user_id():
-    print("get_user_id")
-    global conn
-    global access_key_id
-    #查看access_keys详情
-    ret = conn.describe_access_keys(access_keys=[access_key_id])
-
-    # check ret_code
-    print("ret==%s" % (ret))
-    ret_code = ret.get("ret_code")
-    print("ret_code==%s" % (ret_code))
-    if ret_code != 0:
-        print("describe_access_keys failed")
-        exit(-1)
-
-    matched_access_key = ret['access_key_set']
-    print("matched_access_key==%s" % (matched_access_key))
-
-    print("************************************")
-
-    wanted_access_key = matched_access_key[0]
-    print("wanted_access_key==%s" % (wanted_access_key))
-
-    print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    user_id = wanted_access_key.get('owner')
-    print("user_id=%s" % (user_id))
-    return user_id
-
 
 if __name__ == "__main__":
     print("主线程启动")
@@ -243,6 +99,7 @@ if __name__ == "__main__":
     opt_parser = OptionParser()
     opt_parser.add_option("-z", "--zone_id", action="store", type="string", \
                           dest="zone_id", help='zone id', default="")
+
     opt_parser.add_option("-a", "--access_key_id", action="store", type="string", \
                           dest="access_key_id", help='access key id', default="")
 
@@ -257,6 +114,7 @@ if __name__ == "__main__":
 
     opt_parser.add_option("-P", "--protocol", action="store", type="string", \
                           dest="protocol", help='protocol', default="")
+
     opt_parser.add_option("-v", "--vxnet_id", action="store", type="string", \
                           dest="vxnet_id", help='vxnet id', default="")
 
@@ -282,22 +140,18 @@ if __name__ == "__main__":
     print("vxnet_id:%s" % (vxnet_id))
     print("private_ips:%s" % (private_ips))
 
-
     #连接iaas后台
-    connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    conn = Common.connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
+    print("connect_iaas conn == %s" % (conn))
 
+    # 获取账号ID
+    user_id = Common.get_user_id(conn,access_key_id)
+    print("get_user_id user_id == %s" % (user_id))
 
     #创建子线程执行创建数据库的操作
-    t = threading.Thread(target=create_cache,args=(vxnet_id,private_ips,))
+    t = threading.Thread(target=create_cache,args=(conn,user_id,vxnet_id,private_ips,))
     t.start()
     t.join()
-
-
-    #memcached_ip 写入文件
-    memcached_ip_conf = "/opt/memcached_ip_conf"
-    ret = get_memcached_ip()
-    with open(memcached_ip_conf, "w+") as f1:
-        f1.write("MEMCACHED_ADDRESS %s" %(ret))
 
     print("主线程结束")
 
