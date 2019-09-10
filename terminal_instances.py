@@ -156,24 +156,9 @@ def terminate_instances(conn,instance_id,user_id,private_ips):
     # Result is written to file
     if status == "successful":
         print("terminate_instances instances successful")
-
         # Check if iP resources are released
         ret = check_instance_ip_resource_is_released(conn,user_id,instance_id)
         print("check_instance_ip_resource_is_released ret == %s" %(ret))
-
-        if ret:
-            #test run_instances with private_ip
-            # RunInstances
-            # action = const.ACTION_RUN_INSTANCES
-            # print("action == %s" % (action))
-            # ret = conn.run_instances(image_id="xenial5x64b",owner=user_id,vxnets=["vxnet-za3ludg|192.168.15.140"],instance_name="test123",instance_type="c2m4",login_mode="keypair",login_keypair="kp-2vn9i17f")
-            # print("run_instances ret == %s" % (ret))
-            # Common.check_ret_code(ret, action)
-
-            # terminal_cloned_instance 写入文件
-            terminal_cloned_instance_conf = "/opt/terminal_cloned_instance_conf"
-            with open(terminal_cloned_instance_conf, "w+") as f1:
-                f1.write("TERMINAL_CLONED_INSTANCE_IP %s" % (private_ips))
 
     print("子线程结束")
 
@@ -247,13 +232,6 @@ if __name__ == "__main__":
         t2 = threading.Thread(target=terminate_instances, args=(conn,instance_id,user_id,private_ips,))
         t2.start()
         t2.join()
-
-    else:
-        print("instance with private_ips:%s is deleted" % (private_ips))
-        # terminal_cloned_instance 写入文件
-        terminal_cloned_instance_conf = "/opt/terminal_cloned_instance_conf"
-        with open(terminal_cloned_instance_conf, "w+") as f1:
-            f1.write("TERMINAL_CLONED_INSTANCE_IP None")
 
     print("主线程结束")
 
