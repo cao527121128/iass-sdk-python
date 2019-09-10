@@ -256,6 +256,11 @@ def create_s2server(conn,user_id,vxnet_id,private_ips,instance_class):
         print("create_s2_server s2_server successful")
         g_s2_server_id = s2_server_id
         print("g_s2_server_id == %s" % (g_s2_server_id))
+
+        # s2_server_id 写入文件
+        s2server_id_conf = "/opt/s2server_id_conf"
+        with open(s2server_id_conf, "w+") as f1:
+            f1.write("S2SERVER_ID %s" % (s2_server_id))
     else:
         print("create_s2_server s2_server failed")
         exit(-1)
