@@ -250,49 +250,24 @@ def add_loadbalancer_listeners(conn,user_id,loadbalancer_id,platform):
     print("loadbalancer_listeners_ids == %s" % (loadbalancer_listeners_ids))
     return loadbalancer_listeners_ids
 
-def get_security_group_id(conn,user_id):
-    print("get_security_group_id user_id == %s" % (user_id))
-    security_group_id = None
-
-    # DescribeSecurityGroups
-    action = const.ACTION_DESCRIBE_SECURITY_GROUPS
-    print("action == %s" % (action))
-    ret = conn.describe_security_groups(owner=user_id,offset=0,limit=1)
-    print("describe_security_groups ret == %s" % (ret))
-    Common.check_ret_code(ret, action)
-
-    security_group_set = ret['security_group_set']
-    if security_group_set is None or len(security_group_set) == 0:
-        print("describe_security_groups security_group_set is None")
-        return None
-    for security_group in security_group_set:
-        security_group_id = security_group.get("security_group_id")
-
-    print("security_group_id == %s" % (security_group_id))
-    return security_group_id
-
 def create_loadbalancer(conn,user_id,vxnet_id,private_ips):
     print("子线程启动")
     print("create_loadbalancer user_id == %s vxnet_id == %s private_ips == %s" % (user_id,vxnet_id,private_ips))
     global g_loadbalancer_id
-
-    # get security_group_id
-    security_group_id = get_security_group_id(conn,user_id)
-    print("get_security_group_id  security_group_id == %s" % (security_group_id))
 
     # CreateLoadBalancer
     if not private_ips:
         print("private_ips is None")
         action = const.ACTION_CREATE_LOADBALANCER
         print("action == %s" % (action))
-        ret = conn.create_loadbalancer(loadbalancer_name='vdi-portal-loadbalancer',loadbalancer_type=0,node_count=2,vxnet=vxnet_id,security_group=security_group_id,mode=1,owner=user_id)
+        ret = conn.create_loadbalancer(loadbalancer_name='vdi-portal-loadbalancer',loadbalancer_type=0,node_count=2,vxnet=vxnet_id,mode=1,owner=user_id)
         print("create_loadbalancer ret == %s" % (ret))
         Common.check_ret_code(ret, action)
     else:
         print("private_ips is %s" %(private_ips))
         action = const.ACTION_CREATE_LOADBALANCER
         print("action == %s" % (action))
-        ret = conn.create_loadbalancer(loadbalancer_name='vdi-portal-loadbalancer',loadbalancer_type=0,node_count=2,vxnet=vxnet_id,security_group=security_group_id,mode=1,owner=user_id,private_ip=private_ips)
+        ret = conn.create_loadbalancer(loadbalancer_name='vdi-portal-loadbalancer',loadbalancer_type=0,node_count=2,vxnet=vxnet_id,mode=1,owner=user_id,private_ip=private_ips)
         print("create_loadbalancer ret == %s" % (ret))
         Common.check_ret_code(ret, action)
 
