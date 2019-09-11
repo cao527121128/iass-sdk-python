@@ -62,6 +62,17 @@ def describe_apps(conn,user_id,app_ids):
 
         else:
             print("app_id %s is unsupport" % (app_id))
+            appcenter_postgreql_status = False
+            appcenter_memcached_status = False
+            # appcenter_postgreql_status 写入文件
+            appcenter_postgreql_status_conf = "/opt/appcenter_postgreql_status_conf"
+            with open(appcenter_postgreql_status_conf, "w+") as f1:
+                f1.write("APPCENTER_POSTGRESQL_STATUS %s" % (appcenter_postgreql_status))
+
+            # appcenter_memcached_status 写入文件
+            appcenter_memcached_status_conf = "/opt/appcenter_memcached_status_conf"
+            with open(appcenter_memcached_status_conf, "w+") as f1:
+                f1.write("APPCENTER_MEMCACHED_STATUS %s" % (appcenter_memcached_status))
 
     print("子线程结束")
 
