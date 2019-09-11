@@ -71,9 +71,6 @@ if __name__ == "__main__":
     opt_parser.add_option("-P", "--protocol", action="store", type="string", \
                           dest="protocol", help='protocol', default="")
 
-    opt_parser.add_option("-v", "--vxnet_id", action="store", type="string", \
-                          dest="vxnet_id", help='vxnet id', default="")
-
     opt_parser.add_option("-l", "--s2_servers_id", action="store", type="string", \
                           dest="s2_servers_id", help='s2_servers_id', default="")
 
@@ -85,7 +82,6 @@ if __name__ == "__main__":
     host = options.host
     port = options.port
     protocol = options.protocol
-    vxnet_id = options.vxnet_id
     s2_servers_id = options.s2_servers_id
 
     print("zone_id:%s" % (zone_id))
@@ -94,7 +90,6 @@ if __name__ == "__main__":
     print("host:%s" % (host))
     print("port:%s" % (port))
     print("protocol:%s" % (protocol))
-    print("vxnet_id:%s" % (vxnet_id))
     print("s2_servers_id:%s" % (s2_servers_id))
 
     #连接iaas后台

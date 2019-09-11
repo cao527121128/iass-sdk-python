@@ -91,12 +91,6 @@ def clone_instances(conn,user_id,resource_id,vxnet_id,private_ips=None):
     if status == "successful":
         print("clone_instances instance successful")
 
-        #cloned_instance_id 写入文件
-        cloned_instance_id_conf = "/opt/cloned_instance_id_conf"
-        with open(cloned_instance_id_conf, "w+") as f1:
-            f1.write("CLONED_INSTANCE_ID %s" %(cloned_instance_id))
-
-        # cloned_instance_id 写入文件
         cloned_instance_ip = get_cloned_instance_ip(conn,user_id,instance_id)
         num = 0
         while num < 300:
@@ -108,11 +102,13 @@ def clone_instances(conn,user_id,resource_id,vxnet_id,private_ips=None):
                 print("get_cloned_instance_ip successful")
                 break
 
+        # cloned_instance_ip 写入文件
         print("cloned_instance_ip == %s" % (cloned_instance_ip))
         cloned_instance_ip_conf = "/opt/cloned_instance_ip_conf"
         with open(cloned_instance_ip_conf, "w+") as f1:
             f1.write("CLONED_INSTANCE_IP %s" % (cloned_instance_ip))
 
+        # cloned_instance_id 写入文件
         print("cloned_instance_id == %s" % (cloned_instance_id))
         cloned_instance_id_conf = "/opt/cloned_instance_id_conf"
         with open(cloned_instance_id_conf, "w+") as f2:
