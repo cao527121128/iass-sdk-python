@@ -15,8 +15,8 @@ import os
 import qingcloud.iaas.constants as const
 import common.common as Common
 
-def get_cloned_instance_ip(conn,instance_id):
-    print("get_cloned_instance_ip instance_id == %s" %(instance_id))
+def get_cloned_instance_ip(conn,user_id,instance_id):
+    print("get_cloned_instance_ip user_id == %s instance_id == %s" %(user_id,instance_id))
     private_ip = ""
 
     if instance_id and not isinstance(instance_id, list):
@@ -26,7 +26,7 @@ def get_cloned_instance_ip(conn,instance_id):
     # DescribeInstances
     action = const.ACTION_DESCRIBE_INSTANCES
     print("action == %s" % (action))
-    ret = conn.describe_instances(instances=instance_id, verbose=1)
+    ret = conn.describe_instances(owner=user_id,instances=instance_id,verbose=1)
     print("describe_instances ret == %s" % (ret))
     Common.check_ret_code(ret, action)
 
@@ -45,7 +45,7 @@ def get_cloned_instance_ip(conn,instance_id):
 
 def clone_instances(conn,user_id,resource_id,vxnet_id,private_ips=None):
     print("子线程启动")
-    print("clone_instances resource_id == %s vxnet_id == %s private_ips == %s" % (resource_id,vxnet_id,private_ips))
+    print("clone_instances user_id == %s resource_id == %s vxnet_id == %s private_ips == %s" % (user_id,resource_id,vxnet_id,private_ips))
     if resource_id and not isinstance(resource_id, list):
         resource_id = [resource_id]
     print("resource_id == %s" %(resource_id))
@@ -57,7 +57,7 @@ def clone_instances(conn,user_id,resource_id,vxnet_id,private_ips=None):
         print("action == %s" % (action))
         vxnets_list = resource_id[0] + "|" + vxnet_id
         print("vxnets_list == %s" %(vxnets_list))
-        ret = conn.clone_instances(instances=resource_id,vxnets=[vxnets_list])
+        ret = conn.clone_instances(owner=user_id,instances=resource_id,vxnets=[vxnets_list])
         print("clone_instances ret == %s" % (ret))
         Common.check_ret_code(ret, action)
     else:
@@ -67,7 +67,7 @@ def clone_instances(conn,user_id,resource_id,vxnet_id,private_ips=None):
         print("action == %s" % (action))
         vxnets_list = resource_id[0] + "|" + vxnet_id + "|" + private_ips
         print("vxnets_list == %s" %(vxnets_list))
-        ret = conn.clone_instances(instances=resource_id,vxnets=[vxnets_list])
+        ret = conn.clone_instances(owner=user_id,instances=resource_id,vxnets=[vxnets_list])
         print("clone_instances ret == %s" % (ret))
         Common.check_ret_code(ret, action)
 
@@ -97,13 +97,13 @@ def clone_instances(conn,user_id,resource_id,vxnet_id,private_ips=None):
             f1.write("CLONED_INSTANCE_ID %s" %(cloned_instance_id))
 
         # cloned_instance_id 写入文件
-        cloned_instance_ip = get_cloned_instance_ip(conn,instance_id)
+        cloned_instance_ip = get_cloned_instance_ip(conn,user_id,instance_id)
         num = 0
         while num < 300:
             num = num + 1
             print("num == %d" % (num))
             time.sleep(1)
-            cloned_instance_ip = get_cloned_instance_ip(conn, instance_id)
+            cloned_instance_ip = get_cloned_instance_ip(conn,user_id,instance_id)
             if cloned_instance_ip != "":
                 print("get_cloned_instance_ip successful")
                 break
