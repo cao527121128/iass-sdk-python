@@ -486,10 +486,6 @@ if __name__ == "__main__":
     user_id = Common.get_user_id(conn,access_key_id)
     print("get_user_id user_id == %s" % (user_id))
 
-    # # 获取私有网络ID
-    # vxnet_id = Common.get_vxnet_id(conn,vxnet_type=2)
-    # print("get_vxnet_id vxnet_id == %s" % (vxnet_id))
-
     #创建子线程通过appcenter创建postgresql集群 部署指定数据库应用版本的集群
     t = threading.Thread(target=deploy_app_version,args=(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,standby_private_ip,))
     t.start()

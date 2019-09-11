@@ -15,17 +15,17 @@ import os
 import qingcloud.iaas.constants as const
 import common.common as Common
 
-def get_instance_vxnet_id(conn,resource_id):
-    print("get_instance_vxnet_id resource_id == %s" % (resource_id))
+def get_instance_vxnet_id(conn,user_id,resource_id):
+    print("get_instance_vxnet_id user_id == %s resource_id == %s" % (user_id,resource_id))
     if resource_id and not isinstance(resource_id, list):
         resource_id = [resource_id]
     print("resource_id == %s" %(resource_id))
-    vxnet_id = ""
+    vxnet_id = None
 
     # DescribeInstances
     action = const.ACTION_DESCRIBE_INSTANCES
     print("action == %s" % (action))
-    ret = conn.describe_instances(instances=resource_id, verbose=1)
+    ret = conn.describe_instances(owner=user_id,instances=resource_id,verbose=1)
     print("describe_instances ret == %s" % (ret))
     Common.check_ret_code(ret, action)
 
@@ -86,7 +86,11 @@ if __name__ == "__main__":
     conn = Common.connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
     print("connect_iaas conn == %s" % (conn))
 
-    instance_vxnet_id = get_instance_vxnet_id(conn,resource_id)
+    # 获取账号ID
+    user_id = Common.get_user_id(conn,access_key_id)
+    print("get_user_id user_id == %s" % (user_id))
+
+    instance_vxnet_id = get_instance_vxnet_id(conn,user_id,resource_id)
     print("get_instance_vxnet_id instance_vxnet_id=%s" %(instance_vxnet_id))
 
     if instance_vxnet_id:
