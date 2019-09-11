@@ -113,6 +113,11 @@ def clone_instances(conn,user_id,resource_id,vxnet_id,private_ips=None):
         with open(cloned_instance_ip_conf, "w+") as f1:
             f1.write("CLONED_INSTANCE_IP %s" % (cloned_instance_ip))
 
+        print("cloned_instance_id == %s" % (cloned_instance_id))
+        cloned_instance_id_conf = "/opt/cloned_instance_id_conf"
+        with open(cloned_instance_id_conf, "w+") as f2:
+            f2.write("CLONED_INSTANCE_ID %s" % (cloned_instance_id))
+
     print("子线程结束")
 
 if __name__ == "__main__":

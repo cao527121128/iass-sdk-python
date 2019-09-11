@@ -25,14 +25,14 @@ def get_user_quota_left(resource_type,user_id,conn):
     # GetQuotaLeft
     action = const.ACTION_GET_QUOTA_LEFT
     print("action == %s" % (action))
-    ret = conn.get_quota_left(resource_types=resource_type, owner=user_id)
+    ret = conn.get_quota_left(resource_types=resource_type,owner=user_id)
     print("get_quota_left ret == %s" % (ret))
     Common.check_ret_code(ret, action)
 
     quota_left_set = ret['quota_left_set']
     if quota_left_set is None or len(quota_left_set) == 0:
         print("get_quota_left quota_left_set is None")
-        exit(-1)
+        return 0
     for quota_left in quota_left_set:
         resource_type_left = quota_left.get("left")
 
