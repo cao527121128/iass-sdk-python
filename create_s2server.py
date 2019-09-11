@@ -17,9 +17,9 @@ import common.common as Common
 
 g_s2_server_id = None
 
-def get_s2server_ip(conn,s2_servers_id):
+def get_s2server_ip(conn,user_id,s2_servers_id):
     print("get_s2server_ip user_id == %s s2_servers_id == %s" %(user_id,s2_servers_id))
-    private_ip = ""
+    private_ip = None
 
     if s2_servers_id and not isinstance(s2_servers_id, list):
         s2_servers_id = [s2_servers_id]
@@ -28,7 +28,7 @@ def get_s2server_ip(conn,s2_servers_id):
     # DescribeS2Servers
     action = const.ACTION_DESCRIBE_S2_SERVERS
     print("action == %s" % (action))
-    ret = conn.describe_s2_servers(s2_servers=s2_servers_id, verbose=1)
+    ret = conn.describe_s2_servers(owner=user_id,s2_servers=s2_servers_id,verbose=1)
     print("describe_s2_servers ret == %s" % (ret))
     Common.check_ret_code(ret, action)
 
@@ -75,7 +75,7 @@ def update_s2_servers(conn,user_id,s2_servers_id):
         print("update_s2_servers s2_servers successful")
         #s2server_ip 写入文件
         s2server_ip_conf = "/opt/s2server_ip_conf"
-        s2server_ip = get_s2server_ip(conn,s2_servers_id)
+        s2server_ip = get_s2server_ip(conn,user_id,s2_servers_id)
         print("get_s2server_ip s2server_ip == %s" %(s2server_ip))
         if s2server_ip:
             with open(s2server_ip_conf, "w+") as f1:
@@ -112,9 +112,12 @@ def create_s2_account_vdi_host(conn,user_id,g_vdi_ip_list):
         print("action == %s" % (action))
         s2_groups_list = [{"group_id":s2_group_id,"rw_flag":"rw"}]
         print("s2_groups_list == %s" % (s2_groups_list))
-        ret = conn.create_s2_account(account_name='vdi0-portal-account',account_type='NFS',nfs_ipaddr=vdi_ip,s2_group=s2_group_id,opt_parameters='squash=no_root_squash,sync=sync',s2_groups=s2_groups_list)
+        ret = conn.create_s2_account(owner=user_id,account_name='vdi0-portal-account',account_type='NFS',nfs_ipaddr=vdi_ip,s2_group=s2_group_id,opt_parameters='squash=no_root_squash,sync=sync',s2_groups=s2_groups_list)
         print("create_s2_account ret == %s" % (ret))
-        Common.check_ret_code(ret, action)
+        ret_code = ret.get("ret_code")
+        if ret_code != 0:
+            print("%s failed" % (action))
+            continue
 
         # get s2_account_id
         s2_account_id = ret.get("s2_account_id")
@@ -135,7 +138,7 @@ def get_instance_class(conn,user_id,vdi_resource_id):
     # DescribeInstances
     action = const.ACTION_DESCRIBE_INSTANCES
     print("action == %s" % (action))
-    ret = conn.describe_instances(instances=vdi_resource_id, verbose=1)
+    ret = conn.describe_instances(owner=user_id,instances=vdi_resource_id,verbose=1)
     print("describe_instances ret == %s" % (ret))
     Common.check_ret_code(ret, action)
 
@@ -188,7 +191,7 @@ def create_s2_shared_target(conn,user_id,vxnet_id,s2_server_id,instance_class):
     print("volume_type == %s" % (volume_type))
 
     # get available volume_id
-    volume_id = create_new_volume(conn, user_id,volume_type)
+    volume_id = create_new_volume(conn,user_id,volume_type)
     print("create_new_volume volume_id == %s" % (volume_id))
     if not volume_id:
         print("volume_id is not available. and create volume failed")
