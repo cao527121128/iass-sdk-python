@@ -112,7 +112,7 @@ def create_s2_account_vdi_host(conn,user_id,g_vdi_ip_list):
         print("action == %s" % (action))
         s2_groups_list = [{"group_id":s2_group_id,"rw_flag":"rw"}]
         print("s2_groups_list == %s" % (s2_groups_list))
-        ret = conn.create_s2_account(owner=user_id,account_name='vdi0-portal-account',account_type='NFS',nfs_ipaddr=vdi_ip,s2_group=s2_group_id,opt_parameters='squash=no_root_squash,sync=sync',s2_groups=s2_groups_list)
+        ret = conn.create_s2_account(owner=user_id,account_name='vdi-portal-account',account_type='NFS',nfs_ipaddr=vdi_ip,s2_group=s2_group_id,opt_parameters='squash=no_root_squash,sync=sync',s2_groups=s2_groups_list)
         print("create_s2_account ret == %s" % (ret))
         ret_code = ret.get("ret_code")
         if ret_code != 0:
