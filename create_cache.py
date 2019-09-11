@@ -15,17 +15,17 @@ import os
 import qingcloud.iaas.constants as const
 import common.common as Common
 
-def get_memcached_ip(conn,cache_id):
-    print("get_memcached_ip cache_id == %s" % (cache_id))
+def get_memcached_ip(conn,user_id,cache_id):
+    print("get_memcached_ip user_id == %s cache_id == %s" % (user_id,cache_id))
     if cache_id and not isinstance(cache_id, list):
         cache_id = [cache_id]
     print("cache_id == %s" %(cache_id))
-    private_ip = ""
+    private_ip = None
 
     # DescribeCaches
     action = const.ACTION_DESCRIBE_CACHES
     print("action == %s" % (action))
-    ret = conn.describe_caches(caches=cache_id, verbose=1)
+    ret = conn.describe_caches(owner=user_id,caches=cache_id,verbose=1)
     print("describe_caches ret == %s" % (ret))
     Common.check_ret_code(ret, action)
 
@@ -50,7 +50,7 @@ def create_cache(conn,user_id,vxnet_id,private_ips=None):
         # CreateCache
         action = const.ACTION_CREATE_CACHE
         print("action == %s" % (action))
-        ret = conn.create_cache(vxnet=vxnet_id,cache_size=1,cache_type='memcached1.4.13',cache_name='vdi-portal-memcached')
+        ret = conn.create_cache(owner=user_id,vxnet=vxnet_id,cache_size=1,cache_type='memcached1.4.13',cache_name='vdi-portal-memcached')
         print("create_cache ret == %s" % (ret))
         Common.check_ret_code(ret, action)
     else:
@@ -59,7 +59,7 @@ def create_cache(conn,user_id,vxnet_id,private_ips=None):
         action = const.ACTION_CREATE_CACHE
         print("action == %s" % (action))
         private_ips_list = {"cache_role": "master", "private_ips": private_ips}
-        ret = conn.create_cache(vxnet=vxnet_id,cache_size=1,cache_type='memcached1.4.13',cache_name='vdi-portal-memcached',private_ips=[private_ips_list])
+        ret = conn.create_cache(owner=user_id,vxnet=vxnet_id,cache_size=1,cache_type='memcached1.4.13',cache_name='vdi-portal-memcached',private_ips=[private_ips_list])
         print("create_cache ret == %s" % (ret))
         Common.check_ret_code(ret, action)
 
@@ -84,7 +84,7 @@ def create_cache(conn,user_id,vxnet_id,private_ips=None):
 
         #memcached_ip 写入文件
         memcached_ip_conf = "/opt/memcached_ip_conf"
-        memcached_ip = get_memcached_ip(conn,cache_id)
+        memcached_ip = get_memcached_ip(conn,user_id,cache_id)
         print("get_memcached_ip memcached_ip == %s" %(memcached_ip))
         if memcached_ip:
             with open(memcached_ip_conf, "w+") as f1:
