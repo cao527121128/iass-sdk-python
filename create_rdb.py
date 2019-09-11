@@ -15,17 +15,17 @@ import os
 import qingcloud.iaas.constants as const
 import common.common as Common
 
-def get_rdb_master_ip(conn,rdb_id):
-    print("get_rdb_master_ip rdb_id == %s" % (rdb_id))
+def get_rdb_master_ip(conn,user_id,rdb_id):
+    print("get_rdb_master_ip user_id == %s rdb_id == %s" % (user_id,rdb_id))
     if rdb_id and not isinstance(rdb_id, list):
         rdb_id = [rdb_id]
     print("rdb_id == %s" %(rdb_id))
-    master_ip = ""
+    master_ip = None
 
     # DescribeRDBs
     action = const.ACTION_DESCRIBE_RDBS
     print("action == %s" % (action))
-    ret = conn.describe_rdbs(rdbs=rdb_id, verbose=1)
+    ret = conn.describe_rdbs(owner=user_id,rdbs=rdb_id,verbose=1)
     print("describe_rdbs ret == %s" % (ret))
     Common.check_ret_code(ret, action)
 
@@ -47,7 +47,7 @@ def create_rdb(conn,user_id,vxnet_id,master_private_ip,topslave_private_ip):
         # CreateRDB
         action = const.ACTION_CREATE_RDB
         print("action == %s" % (action))
-        ret = conn.create_rdb(vxnet=vxnet_id,rdb_engine='psql',engine_version='9.4',rdb_username='yunify',rdb_password='Zhu88jie',rdb_type=2,storage_size=10,rdb_name='vdi-portal-postgresql')
+        ret = conn.create_rdb(owner=user_id,vxnet=vxnet_id,rdb_engine='psql',engine_version='9.4',rdb_username='yunify',rdb_password='Zhu88jie',rdb_type=2,storage_size=10,rdb_name='vdi-portal-postgresql')
         print("create_rdb ret == %s" % (ret))
         Common.check_ret_code(ret, action)
     else:
@@ -57,7 +57,7 @@ def create_rdb(conn,user_id,vxnet_id,master_private_ip,topslave_private_ip):
         print("action == %s" % (action))
         private_ips_list = {"master":master_private_ip,"topslave":topslave_private_ip}
         print("private_ips_list == %s" %(private_ips_list))
-        ret = conn.create_rdb(vxnet=vxnet_id,rdb_engine='psql',engine_version='9.4',rdb_username='yunify',rdb_password='Zhu88jie',rdb_type=2,storage_size=10,rdb_name='vdi-portal-postgresql',private_ips=[private_ips_list])
+        ret = conn.create_rdb(owner=user_id,vxnet=vxnet_id,rdb_engine='psql',engine_version='9.4',rdb_username='yunify',rdb_password='Zhu88jie',rdb_type=2,storage_size=10,rdb_name='vdi-portal-postgresql',private_ips=[private_ips_list])
         print("create_rdb ret == %s" % (ret))
         Common.check_ret_code(ret, action)
 
@@ -89,7 +89,7 @@ def create_rdb(conn,user_id,vxnet_id,master_private_ip,topslave_private_ip):
 
         #master_ip 写入文件
         master_ip_conf = "/opt/master_ip_conf"
-        master_ip = get_rdb_master_ip(conn, rdb_id)
+        master_ip = get_rdb_master_ip(conn,user_id,rdb_id)
         print("get_rdb_master_ip master_ip == %s" %(master_ip))
         if master_ip:
             with open(master_ip_conf, "w+") as f2:
