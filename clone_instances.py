@@ -114,6 +114,40 @@ def clone_instances(conn,user_id,resource_id,vxnet_id,private_ips=None):
         with open(cloned_instance_id_conf, "w+") as f2:
             f2.write("CLONED_INSTANCE_ID %s" % (cloned_instance_id))
 
+        # DescribeTags
+        action = const.ACTION_DESCRIBE_TAGS
+        print("action == %s" % (action))
+        ret = conn.describe_tags(search_word='桌面云服务器VDI1', offset=0, limit=100)
+        print("describe_tags ret == %s" % (ret))
+        Common.check_ret_code(ret, action)
+        tag_set = ret['tag_set']
+        print("tag_set == %s" % (tag_set))
+        if tag_set is None or len(tag_set) == 0:
+            print("describe_tags tag_set is None")
+
+            # CreateTag
+            action = const.ACTION_CREATE_TAG
+            print("action == %s" % (action))
+            ret = conn.create_tag(tag_name='桌面云服务器VDI1')
+            print("create_tag ret == %s" % (ret))
+            Common.check_ret_code(ret, action)
+            tag_id = ret['tag_id']
+        else:
+            for tag in tag_set:
+                tag_id = tag.get("tag_id")
+
+        print("tag_id == %s" % (tag_id))
+        # AttachTags
+        action = const.ACTION_ATTACH_TAGS
+        print("action == %s" % (action))
+        resource_tag_pairs = [{"resource_type": "instance", "resource_id": cloned_instance_id, "tag_id": tag_id}]
+        selectedData = [tag_id]
+        print("resource_tag_pairs == %s" % (resource_tag_pairs))
+        print("selectedData == %s" % (selectedData))
+        ret = conn.attach_tags(resource_tag_pairs=resource_tag_pairs, selectedData=selectedData)
+        print("attach_tags ret == %s" % (ret))
+        Common.check_ret_code(ret, action)
+
     print("子线程结束")
 
 if __name__ == "__main__":

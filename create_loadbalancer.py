@@ -260,14 +260,14 @@ def create_loadbalancer(conn,user_id,vxnet_id,private_ips):
         print("private_ips is None")
         action = const.ACTION_CREATE_LOADBALANCER
         print("action == %s" % (action))
-        ret = conn.create_loadbalancer(loadbalancer_name='vdi-portal-loadbalancer',loadbalancer_type=0,node_count=2,vxnet=vxnet_id,mode=1,owner=user_id)
+        ret = conn.create_loadbalancer(loadbalancer_name='桌面管理中心',loadbalancer_type=0,node_count=2,vxnet=vxnet_id,mode=1,owner=user_id)
         print("create_loadbalancer ret == %s" % (ret))
         Common.check_ret_code(ret, action)
     else:
         print("private_ips is %s" %(private_ips))
         action = const.ACTION_CREATE_LOADBALANCER
         print("action == %s" % (action))
-        ret = conn.create_loadbalancer(loadbalancer_name='vdi-portal-loadbalancer',loadbalancer_type=0,node_count=2,vxnet=vxnet_id,mode=1,owner=user_id,private_ip=private_ips)
+        ret = conn.create_loadbalancer(loadbalancer_name='桌面管理中心',loadbalancer_type=0,node_count=2,vxnet=vxnet_id,mode=1,owner=user_id,private_ip=private_ips)
         print("create_loadbalancer ret == %s" % (ret))
         Common.check_ret_code(ret, action)
 
@@ -291,6 +291,40 @@ def create_loadbalancer(conn,user_id,vxnet_id,private_ips):
         print("create_loadbalancer loadbalancer successful")
         g_loadbalancer_id = loadbalancer_id
         print("g_loadbalancer_id == %s" % (g_loadbalancer_id))
+
+        # DescribeTags
+        action = const.ACTION_DESCRIBE_TAGS
+        print("action == %s" % (action))
+        ret = conn.describe_tags(search_word='桌面云负载均衡器', offset=0, limit=100)
+        print("describe_tags ret == %s" % (ret))
+        Common.check_ret_code(ret, action)
+        tag_set = ret['tag_set']
+        print("tag_set == %s" % (tag_set))
+        if tag_set is None or len(tag_set) == 0:
+            print("describe_tags tag_set is None")
+
+            # CreateTag
+            action = const.ACTION_CREATE_TAG
+            print("action == %s" % (action))
+            ret = conn.create_tag(tag_name='桌面云负载均衡器')
+            print("create_tag ret == %s" % (ret))
+            Common.check_ret_code(ret, action)
+            tag_id = ret['tag_id']
+        else:
+            for tag in tag_set:
+                tag_id = tag.get("tag_id")
+
+        print("tag_id == %s" % (tag_id))
+        # AttachTags
+        action = const.ACTION_ATTACH_TAGS
+        print("action == %s" % (action))
+        resource_tag_pairs = [{"resource_type": "loadbalancer", "resource_id": loadbalancer_id, "tag_id": tag_id}]
+        selectedData = [tag_id]
+        print("resource_tag_pairs == %s" % (resource_tag_pairs))
+        print("selectedData == %s" % (selectedData))
+        ret = conn.attach_tags(resource_tag_pairs=resource_tag_pairs, selectedData=selectedData)
+        print("attach_tags ret == %s" % (ret))
+        Common.check_ret_code(ret, action)
 
     print("子线程结束")
 
