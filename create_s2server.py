@@ -80,6 +80,8 @@ def update_s2_servers(conn,user_id,s2_servers_id):
         if s2server_ip:
             with open(s2server_ip_conf, "w+") as f1:
                 f1.write("S2SERVER_ADDRESS %s" %(s2server_ip))
+
+
     print("子线程结束")
 
     return None
@@ -210,6 +212,11 @@ def create_s2_shared_target(conn,user_id,vxnet_id,s2_server_id,instance_class):
     s2_shared_target_id = ret['s2_shared_target']
     print("s2_shared_target_id == %s" % (s2_shared_target_id))
 
+    # s2_shared_target_id 写入文件
+    shared_target_id_conf = "/opt/shared_target_id_conf"
+    with open(shared_target_id_conf, "w+") as f:
+        f.write("SHARED_TARGET_ID %s" % (s2_shared_target_id))
+
     print("子线程结束")
 
 def create_s2server(conn,user_id,vxnet_id,private_ips,instance_class):
@@ -227,7 +234,7 @@ def create_s2server(conn,user_id,vxnet_id,private_ips,instance_class):
         # CreateS2Server
         action = const.ACTION_CREATE_S2_SERVER
         print("action == %s" % (action))
-        ret = conn.create_s2_server(owner=user_id,vxnet=vxnet_id,service_type='vnas',s2_server_name='vdi-portal-nas',s2_server_type=0,description='vdi portal nas',s2_class=s2_class)
+        ret = conn.create_s2_server(owner=user_id,vxnet=vxnet_id,service_type='vnas',s2_server_name='文件服务器',s2_server_type=0,description='文件存储vNAS',s2_class=s2_class)
         print("create_s2_server ret == %s" % (ret))
         Common.check_ret_code(ret, action)
     else:
@@ -235,7 +242,7 @@ def create_s2server(conn,user_id,vxnet_id,private_ips,instance_class):
         # CreateS2Server
         action = const.ACTION_CREATE_S2_SERVER
         print("action == %s" % (action))
-        ret = conn.create_s2_server(owner=user_id,vxnet=vxnet_id,service_type='vnas',s2_server_name='vdi-portal-nas',s2_server_type=0,description='vdi portal nas',s2_class=s2_class,private_ip=private_ips)
+        ret = conn.create_s2_server(owner=user_id,vxnet=vxnet_id,service_type='vnas',s2_server_name='文件服务器',s2_server_type=0,description='文件存储vNAS',s2_class=s2_class,private_ip=private_ips)
         print("create_s2_server ret == %s" % (ret))
         Common.check_ret_code(ret, action)
 
@@ -264,6 +271,41 @@ def create_s2server(conn,user_id,vxnet_id,private_ips,instance_class):
         s2server_id_conf = "/opt/s2server_id_conf"
         with open(s2server_id_conf, "w+") as f1:
             f1.write("S2SERVER_ID %s" % (s2_server_id))
+
+        # DescribeTags
+        action = const.ACTION_DESCRIBE_TAGS
+        print("action == %s" % (action))
+        ret = conn.describe_tags(search_word='桌面云文件服务器', offset=0, limit=100)
+        print("describe_tags ret == %s" % (ret))
+        Common.check_ret_code(ret, action)
+        tag_set = ret['tag_set']
+        print("tag_set == %s" % (tag_set))
+        if tag_set is None or len(tag_set) == 0:
+            print("describe_tags tag_set is None")
+
+            # CreateTag
+            action = const.ACTION_CREATE_TAG
+            print("action == %s" % (action))
+            ret = conn.create_tag(tag_name='桌面云文件服务器')
+            print("create_tag ret == %s" % (ret))
+            Common.check_ret_code(ret, action)
+            tag_id = ret['tag_id']
+        else:
+            for tag in tag_set:
+                tag_id = tag.get("tag_id")
+
+        print("tag_id == %s" % (tag_id))
+        # AttachTags
+        action = const.ACTION_ATTACH_TAGS
+        print("action == %s" % (action))
+        resource_tag_pairs = [{"resource_type": "s2_server", "resource_id": s2_server_id, "tag_id": tag_id}]
+        selectedData = [tag_id]
+        print("resource_tag_pairs == %s" % (resource_tag_pairs))
+        print("selectedData == %s" % (selectedData))
+        ret = conn.attach_tags(resource_tag_pairs=resource_tag_pairs, selectedData=selectedData)
+        print("attach_tags ret == %s" % (ret))
+        Common.check_ret_code(ret, action)
+
     else:
         print("create_s2_server s2_server failed")
         exit(-1)
