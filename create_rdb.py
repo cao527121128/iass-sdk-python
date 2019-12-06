@@ -15,6 +15,93 @@ import os
 import qingcloud.iaas.constants as const
 import common.common as Common
 
+def get_topslave_rdb_instance_id(conn,user_id,rdb_id):
+    print("get_topslave_rdb_instance_id user_id == %s rdb_id == %s" % (user_id,rdb_id))
+    if rdb_id and not isinstance(rdb_id, list):
+        rdb_id = [rdb_id]
+    print("rdb_id == %s" %(rdb_id))
+    topslave_rdb_instance_id = None
+
+    # DescribeRDBs
+    action = const.ACTION_DESCRIBE_RDBS
+    print("action == %s" % (action))
+    ret = conn.describe_rdbs(owner=user_id,rdbs=rdb_id,verbose=1)
+    print("describe_rdbs ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
+
+    rdb_set = ret['rdb_set']
+    if rdb_set is None or len(rdb_set) == 0:
+        print("describe_rdbs rdb_set is None")
+        exit(-1)
+    for rdb in rdb_set:
+        rdb_instances = rdb.get("rdb_instances")
+        print("rdb_instances == %s" %(rdb_instances))
+        for rdb_instance in rdb_instances:
+            print("rdb_instance == %s" % (rdb_instance))
+            rdb_instance_role = rdb_instance["rdb_instance_role"]
+            if "topslave" == rdb_instance_role:
+                topslave_rdb_instance_id = rdb_instance["rdb_instance_id"]
+
+    return topslave_rdb_instance_id
+
+def get_master_rdb_instance_id(conn,user_id,rdb_id):
+    print("get_master_rdb_instance_id user_id == %s rdb_id == %s" % (user_id,rdb_id))
+    if rdb_id and not isinstance(rdb_id, list):
+        rdb_id = [rdb_id]
+    print("rdb_id == %s" %(rdb_id))
+    master_rdb_instance_id = None
+
+    # DescribeRDBs
+    action = const.ACTION_DESCRIBE_RDBS
+    print("action == %s" % (action))
+    ret = conn.describe_rdbs(owner=user_id,rdbs=rdb_id,verbose=1)
+    print("describe_rdbs ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
+
+    rdb_set = ret['rdb_set']
+    if rdb_set is None or len(rdb_set) == 0:
+        print("describe_rdbs rdb_set is None")
+        exit(-1)
+    for rdb in rdb_set:
+        rdb_instances = rdb.get("rdb_instances")
+        print("rdb_instances == %s" %(rdb_instances))
+        for rdb_instance in rdb_instances:
+            print("rdb_instance == %s" % (rdb_instance))
+            rdb_instance_role = rdb_instance["rdb_instance_role"]
+            if "master" == rdb_instance_role:
+                master_rdb_instance_id = rdb_instance["rdb_instance_id"]
+
+    return master_rdb_instance_id
+
+def get_rdb_topslave_ip(conn,user_id,rdb_id):
+    print("get_rdb_topslave_ip user_id == %s rdb_id == %s" % (user_id,rdb_id))
+    if rdb_id and not isinstance(rdb_id, list):
+        rdb_id = [rdb_id]
+    print("rdb_id == %s" %(rdb_id))
+    rdb_topslave_ip = None
+
+    # DescribeRDBs
+    action = const.ACTION_DESCRIBE_RDBS
+    print("action == %s" % (action))
+    ret = conn.describe_rdbs(owner=user_id,rdbs=rdb_id,verbose=1)
+    print("describe_rdbs ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
+
+    rdb_set = ret['rdb_set']
+    if rdb_set is None or len(rdb_set) == 0:
+        print("describe_rdbs rdb_set is None")
+        exit(-1)
+    for rdb in rdb_set:
+        rdb_instances = rdb.get("rdb_instances")
+        print("rdb_instances == %s" %(rdb_instances))
+        for rdb_instance in rdb_instances:
+            print("rdb_instance == %s" % (rdb_instance))
+            rdb_instance_role = rdb_instance["rdb_instance_role"]
+            if "topslave" == rdb_instance_role:
+                rdb_topslave_ip = rdb_instance["private_ip"]
+
+    return rdb_topslave_ip
+
 def get_rdb_master_ip(conn,user_id,rdb_id):
     print("get_rdb_master_ip user_id == %s rdb_id == %s" % (user_id,rdb_id))
     if rdb_id and not isinstance(rdb_id, list):
@@ -47,7 +134,7 @@ def create_rdb(conn,user_id,vxnet_id,master_private_ip,topslave_private_ip):
         # CreateRDB
         action = const.ACTION_CREATE_RDB
         print("action == %s" % (action))
-        ret = conn.create_rdb(owner=user_id,vxnet=vxnet_id,rdb_engine='psql',engine_version='9.4',rdb_username='yunify',rdb_password='Zhu88jie',rdb_type=2,storage_size=10,rdb_name='vdi-portal-postgresql')
+        ret = conn.create_rdb(owner=user_id,vxnet=vxnet_id,rdb_engine='psql',engine_version='9.4',rdb_username='yunify',rdb_password='Zhu88jie',rdb_type=2,storage_size=10,rdb_name='数据库服务',description='数据库')
         print("create_rdb ret == %s" % (ret))
         Common.check_ret_code(ret, action)
     else:
@@ -57,7 +144,7 @@ def create_rdb(conn,user_id,vxnet_id,master_private_ip,topslave_private_ip):
         print("action == %s" % (action))
         private_ips_list = {"master":master_private_ip,"topslave":topslave_private_ip}
         print("private_ips_list == %s" %(private_ips_list))
-        ret = conn.create_rdb(owner=user_id,vxnet=vxnet_id,rdb_engine='psql',engine_version='9.4',rdb_username='yunify',rdb_password='Zhu88jie',rdb_type=2,storage_size=10,rdb_name='vdi-portal-postgresql',private_ips=[private_ips_list])
+        ret = conn.create_rdb(owner=user_id,vxnet=vxnet_id,rdb_engine='psql',engine_version='9.4',rdb_username='yunify',rdb_password='Zhu88jie',rdb_type=2,storage_size=10,rdb_name='数据库服务',description='数据库',private_ips=[private_ips_list])
         print("create_rdb ret == %s" % (ret))
         Common.check_ret_code(ret, action)
 
@@ -84,16 +171,45 @@ def create_rdb(conn,user_id,vxnet_id,master_private_ip,topslave_private_ip):
         create_rdb_status = "True"
         # create_rdb_status 写入文件
         create_rdb_status_conf = "/opt/create_rdb_status_conf"
-        with open(create_rdb_status_conf, "w+") as f1:
-            f1.write("CREATE_RDB_STATUS %s" % (create_rdb_status))
+        with open(create_rdb_status_conf, "w+") as f:
+            f.write("CREATE_RDB_STATUS %s" % (create_rdb_status))
 
-        #master_ip 写入文件
-        master_ip_conf = "/opt/master_ip_conf"
-        master_ip = get_rdb_master_ip(conn,user_id,rdb_id)
-        print("get_rdb_master_ip master_ip == %s" %(master_ip))
-        if master_ip:
-            with open(master_ip_conf, "w+") as f2:
-                f2.write("POSTGRESQL_ADDRESS %s" %(master_ip))
+        #rdb_master_ip 写入文件
+        rdb_master_ip_conf = "/opt/rdb_master_ip_conf"
+        rdb_master_ip = get_rdb_master_ip(conn,user_id,rdb_id)
+        print("get_rdb_master_ip rdb_master_ip == %s" %(rdb_master_ip))
+        if rdb_master_ip:
+            with open(rdb_master_ip_conf, "w+") as f:
+                f.write("POSTGRESQL_ADDRESS %s" %(rdb_master_ip))
+
+        #rdb_topslave_ip 写入文件
+        rdb_topslave_ip_conf = "/opt/rdb_topslave_ip_conf"
+        rdb_topslave_ip = get_rdb_topslave_ip(conn,user_id,rdb_id)
+        print("get_rdb_topslave_ip rdb_topslave_ip == %s" %(rdb_topslave_ip))
+        if rdb_topslave_ip:
+            with open(rdb_topslave_ip_conf, "w+") as f:
+                f.write("RDB_TOPSLAVE_IP %s" %(rdb_topslave_ip))
+
+        #rdb_id 写入文件
+        rdb_id_conf = "/opt/rdb_id_conf"
+        with open(rdb_id_conf, "w+") as f:
+            f.write("RDB_ID %s" %(rdb_id))
+
+        #master_rdb_instance_id 写入文件
+        master_rdb_instance_id_conf = "/opt/master_rdb_instance_id_conf"
+        master_rdb_instance_id = get_master_rdb_instance_id(conn,user_id,rdb_id)
+        print("get_master_rdb_instance_id master_rdb_instance_id == %s" %(master_rdb_instance_id))
+        if master_rdb_instance_id:
+            with open(master_rdb_instance_id_conf, "w+") as f:
+                f.write("MASTER_RDB_INSTANCE_ID %s" %(master_rdb_instance_id))
+
+        #topslave_rdb_instance_id 写入文件
+        topslave_rdb_instance_id_conf = "/opt/topslave_rdb_instance_id_conf"
+        topslave_rdb_instance_id = get_topslave_rdb_instance_id(conn,user_id,rdb_id)
+        print("get_topslave_rdb_instance_id topslave_rdb_instance_id == %s" %(topslave_rdb_instance_id))
+        if topslave_rdb_instance_id:
+            with open(topslave_rdb_instance_id_conf, "w+") as f:
+                f.write("TOPSLAVE_RDB_INSTANCE_ID %s" %(topslave_rdb_instance_id))
 
     print("子线程结束")
 
