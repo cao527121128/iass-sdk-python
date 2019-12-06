@@ -104,3 +104,4 @@ def get_job_status(conn,job_id):
         status = job.get("status")
     print("status == %s" %(status))
     return status
+

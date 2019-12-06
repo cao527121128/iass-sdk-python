@@ -15,8 +15,29 @@ import os
 import qingcloud.iaas.constants as const
 import common.common as Common
 
-def get_memcached_ip(conn,user_id,cache_id):
-    print("get_memcached_ip user_id == %s cache_id == %s" % (user_id,cache_id))
+def get_cache_node_id(conn,user_id,cache_id):
+    print("get_cache_node_id user_id == %s cache_id == %s" % (user_id,cache_id))
+    cache_node_id = None
+
+    # DescribeCacheNodes
+    action = const.ACTION_DESCRIBE_CACHE_NODES
+    print("action == %s" % (action))
+    ret = conn.describe_cache_nodes(owner=user_id,cache=cache_id,verbose=1)
+    print("describe_cache_nodes ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
+
+    cache_node_set = ret['cache_node_set']
+    if cache_node_set is None or len(cache_node_set) == 0:
+        print("describe_cache_nodes cache_node_set is None")
+        exit(-1)
+    for cache_node in cache_node_set:
+        cache_node_id = cache_node.get("cache_node_id")
+        print("cache_node_id == %s" %(cache_node_id))
+
+    return cache_node_id
+
+def get_cache_master_ip(conn,user_id,cache_id):
+    print("get_cache_master_ip user_id == %s cache_id == %s" % (user_id,cache_id))
     if cache_id and not isinstance(cache_id, list):
         cache_id = [cache_id]
     print("cache_id == %s" %(cache_id))
@@ -40,7 +61,6 @@ def get_memcached_ip(conn,user_id,cache_id):
 
     return private_ip
 
-
 def create_cache(conn,user_id,vxnet_id,private_ips=None):
     print("子线程启动")
     print("create_cache user_id == %s vxnet_id == %s private_ips == %s" % (user_id,vxnet_id,private_ips))
@@ -50,7 +70,7 @@ def create_cache(conn,user_id,vxnet_id,private_ips=None):
         # CreateCache
         action = const.ACTION_CREATE_CACHE
         print("action == %s" % (action))
-        ret = conn.create_cache(owner=user_id,vxnet=vxnet_id,cache_size=1,cache_type='memcached1.4.13',cache_name='vdi-portal-memcached')
+        ret = conn.create_cache(owner=user_id,vxnet=vxnet_id,cache_size=1,cache_type='memcached1.4.13',cache_name='缓存服务',description='缓存')
         print("create_cache ret == %s" % (ret))
         Common.check_ret_code(ret, action)
     else:
@@ -59,7 +79,7 @@ def create_cache(conn,user_id,vxnet_id,private_ips=None):
         action = const.ACTION_CREATE_CACHE
         print("action == %s" % (action))
         private_ips_list = {"cache_role": "master", "private_ips": private_ips}
-        ret = conn.create_cache(owner=user_id,vxnet=vxnet_id,cache_size=1,cache_type='memcached1.4.13',cache_name='vdi-portal-memcached',private_ips=[private_ips_list])
+        ret = conn.create_cache(owner=user_id,vxnet=vxnet_id,cache_size=1,cache_type='memcached1.4.13',cache_name='缓存服务',description='缓存',private_ips=[private_ips_list])
         print("create_cache ret == %s" % (ret))
         Common.check_ret_code(ret, action)
 
@@ -82,13 +102,60 @@ def create_cache(conn,user_id,vxnet_id,private_ips=None):
     if status == "successful":
         print("create_cache cache successful")
 
-        #memcached_ip 写入文件
-        memcached_ip_conf = "/opt/memcached_ip_conf"
-        memcached_ip = get_memcached_ip(conn,user_id,cache_id)
-        print("get_memcached_ip memcached_ip == %s" %(memcached_ip))
-        if memcached_ip:
-            with open(memcached_ip_conf, "w+") as f1:
-                f1.write("MEMCACHED_ADDRESS %s" %(memcached_ip))
+        # cache_id 写入文件
+        cache_id_conf = "/opt/cache_id_conf"
+        with open(cache_id_conf, "w+") as f:
+            f.write("CACHE_ID %s" % (cache_id))
+
+        #cache_master_ip 写入文件
+        cache_master_ip_conf = "/opt/cache_master_ip_conf"
+        cache_master_ip = get_cache_master_ip(conn,user_id,cache_id)
+        print("get_cache_master_ip cache_master_ip == %s" %(cache_master_ip))
+        if cache_master_ip:
+            with open(cache_master_ip_conf, "w+") as f:
+                f.write("MEMCACHED_ADDRESS %s" %(cache_master_ip))
+
+        #cache_node_id 写入文件
+        cache_node_id_conf = "/opt/cache_node_id_conf"
+        cache_node_id = get_cache_node_id(conn,user_id,cache_id)
+        print("get_cache_node_id cache_node_id == %s" %(cache_node_id))
+        if cache_node_id:
+            with open(cache_node_id_conf, "w+") as f:
+                f.write("CACHE_NODE_ID %s" %(cache_node_id))
+
+        # DescribeTags
+        action = const.ACTION_DESCRIBE_TAGS
+        print("action == %s" % (action))
+        ret = conn.describe_tags(search_word='桌面云缓存',offset=0,limit=100)
+        print("describe_tags ret == %s" % (ret))
+        Common.check_ret_code(ret, action)
+        tag_set = ret['tag_set']
+        print("tag_set == %s" % (tag_set))
+        if tag_set is None or len(tag_set) == 0:
+            print("describe_tags tag_set is None")
+
+            # CreateTag
+            action = const.ACTION_CREATE_TAG
+            print("action == %s" % (action))
+            ret = conn.create_tag(tag_name='桌面云缓存')
+            print("create_tag ret == %s" % (ret))
+            Common.check_ret_code(ret, action)
+            tag_id = ret['tag_id']
+        else:
+            for tag in tag_set:
+                tag_id = tag.get("tag_id")
+
+        print("tag_id == %s" % (tag_id))
+        # AttachTags
+        action = const.ACTION_ATTACH_TAGS
+        print("action == %s" % (action))
+        resource_tag_pairs = [{"resource_type": "cache", "resource_id": cache_id, "tag_id": tag_id}]
+        selectedData = [tag_id]
+        print("resource_tag_pairs == %s" % (resource_tag_pairs))
+        print("selectedData == %s" % (selectedData))
+        ret = conn.attach_tags(resource_tag_pairs=resource_tag_pairs, selectedData=selectedData)
+        print("attach_tags ret == %s" % (ret))
+        Common.check_ret_code(ret, action)
 
     print("子线程结束")
 
@@ -148,7 +215,7 @@ if __name__ == "__main__":
     user_id = Common.get_user_id(conn,access_key_id)
     print("get_user_id user_id == %s" % (user_id))
 
-    #创建子线程执行创建数据库的操作
+    #创建子线程执行创建缓存的操作
     t = threading.Thread(target=create_cache,args=(conn,user_id,vxnet_id,private_ips,))
     t.start()
     t.join()

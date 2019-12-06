@@ -675,6 +675,40 @@ class APIConnection(HttpConnection):
 
         return self.send_request(action, body)
 
+    def describe_cache_nodes(self, cache=None,
+                        status=None,
+                        verbose=0,
+                        owner=None,
+                        search_word=None,
+                        offset=None,
+                        limit=None,
+                        tags=None,
+                        **ignore):
+        """ Describe cache_nodes filtered by condition.
+        @param caches: an array including IDs of the cache_nodes you want to list.
+                     No ID specified means list all.
+        @param status: valid values include pending, available, suspended, deleted, ceased.
+        @param verbose: the number to specify the verbose level,
+                        larger the number, the more detailed information will be returned.
+        @param search_word: the search word.
+        @param offset: the starting offset of the returning results.
+        @param limit: specify the number of the returning results.
+        @param tags : the array of IDs of tags.
+        """
+        action = const.ACTION_DESCRIBE_CACHE_NODES
+        valid_keys = ['cache', 'status', 'verbose', 'search_word',
+                      'offset', 'limit', 'tags', 'owner']
+        body = filter_out_none(locals(), valid_keys)
+        if not self.req_checker.check_params(body,
+                                             required_params=["cache"],
+                                             integer_params=[
+                                                 "offset", "limit", "verbose"],
+                                             list_params=["tags"]
+                                             ):
+            return None
+
+        return self.send_request(action, body)
+
     def create_cache(self, vxnet=None,
                      cache_size=None,
                      cache_type=None,

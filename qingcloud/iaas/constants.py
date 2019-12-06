@@ -204,6 +204,7 @@ ACTION_CREATE_CACHE = "CreateCache"
 ACTION_RESIZE_CACHES = "ResizeCaches"
 ACTION_START_CACHES = "StartCaches"
 ACTION_STOP_CACHES = "StopCaches"
+ACTION_DESCRIBE_CACHE_NODES = "DescribeCacheNodes"
 
 # spark
 ACTION_DESCRIBE_SPARKS = "DescribeSparks"
