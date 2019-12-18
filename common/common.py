@@ -3,6 +3,7 @@ Created on 2019-9-8
 
 @author: yunify
 '''
+#coding:utf-8
 import qingcloud.iaas
 import threading
 import time
@@ -104,4 +105,40 @@ def get_job_status(conn,job_id):
         status = job.get("status")
     print("status == %s" %(status))
     return status
+
+def attach_tags_to_resource(conn,tag_name=None,resource_type=None,resource_id=None):
+    print("attach_tags_to_resource resource_type == %s resource_id == %s" % (resource_type,resource_id))
+    # AttachTags
+    action = const.ACTION_DESCRIBE_TAGS
+    print("action == %s" % (action))
+    ret = conn.describe_tags(search_word=tag_name, offset=0, limit=100)
+    print("describe_tags ret == %s" % (ret))
+    check_ret_code(ret, action)
+    tag_set = ret['tag_set']
+    print("tag_set == %s" % (tag_set))
+    if tag_set is None or len(tag_set) == 0:
+        print("describe_tags tag_set is None")
+
+        # CreateTag
+        action = const.ACTION_CREATE_TAG
+        print("action == %s" % (action))
+        ret = conn.create_tag(tag_name=tag_name)
+        print("create_tag ret == %s" % (ret))
+        check_ret_code(ret, action)
+        tag_id = ret['tag_id']
+    else:
+        for tag in tag_set:
+            tag_id = tag.get("tag_id")
+
+    print("tag_id == %s" % (tag_id))
+
+    action = const.ACTION_ATTACH_TAGS
+    print("action == %s" % (action))
+    resource_tag_pairs = [{"resource_type": resource_type, "resource_id": resource_id, "tag_id": tag_id}]
+    selectedData = [tag_id]
+    print("resource_tag_pairs == %s" % (resource_tag_pairs))
+    print("selectedData == %s" % (selectedData))
+    ret = conn.attach_tags(resource_tag_pairs=resource_tag_pairs, selectedData=selectedData)
+    print("attach_tags ret == %s" % (ret))
+    check_ret_code(ret, action)
 
