@@ -174,6 +174,11 @@ def create_rdb(conn,user_id,vxnet_id,master_private_ip,topslave_private_ip):
         with open(create_rdb_status_conf, "w+") as f:
             f.write("CREATE_RDB_STATUS %s" % (create_rdb_status))
 
+        #rdb_id 写入文件
+        rdb_id_conf = "/opt/rdb_id_conf"
+        with open(rdb_id_conf, "w+") as f:
+            f.write("RDB_ID %s" %(rdb_id))
+
         #rdb_master_ip 写入文件
         rdb_master_ip_conf = "/opt/rdb_master_ip_conf"
         rdb_master_ip = get_rdb_master_ip(conn,user_id,rdb_id)
@@ -189,11 +194,6 @@ def create_rdb(conn,user_id,vxnet_id,master_private_ip,topslave_private_ip):
         if rdb_topslave_ip:
             with open(rdb_topslave_ip_conf, "w+") as f:
                 f.write("RDB_TOPSLAVE_IP %s" %(rdb_topslave_ip))
-
-        #rdb_id 写入文件
-        rdb_id_conf = "/opt/rdb_id_conf"
-        with open(rdb_id_conf, "w+") as f:
-            f.write("RDB_ID %s" %(rdb_id))
 
         #master_rdb_instance_id 写入文件
         master_rdb_instance_id_conf = "/opt/master_rdb_instance_id_conf"

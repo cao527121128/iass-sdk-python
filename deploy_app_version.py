@@ -16,6 +16,81 @@ import qingcloud.iaas.constants as const
 import json
 import common.common as Common
 
+def get_postgresql_cluster_topslave_rdb_instance_id(conn, cluster_id):
+    print("get_postgresql_cluster_topslave_rdb_instance_id cluster_id == %s" %(cluster_id))
+
+    topslave_rdb_instance_id = None
+    # DescribeClusterDisplayTabs
+    action = const.ACTION_DESCRIBE_CLUSTER_DISPLAY_TABS
+    print("action == %s" % (action))
+    ret = conn.describe_cluster_display_tabs(cluster=cluster_id,verbose=1,display_tabs="node_details")
+    print("describe_cluster_display_tabs ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
+    display_tabs = ret['display_tabs']
+    if display_tabs is None or len(display_tabs) == 0:
+        print("describe_cluster_display_tabs display_tabs is None")
+        return None
+    datas = display_tabs['data']
+    print("datas == %s" % (datas))
+
+    for data in datas:
+        print("data == %s" % (data))
+        if "standby" in data:
+            topslave_rdb_instance_id = data[0]
+
+    print("topslave_rdb_instance_id == %s" %(topslave_rdb_instance_id))
+    return topslave_rdb_instance_id
+
+def get_postgresql_cluster_master_rdb_instance_id(conn, cluster_id):
+    print("get_postgresql_cluster_master_rdb_instance_id cluster_id == %s" %(cluster_id))
+
+    master_rdb_instance_id = None
+    # DescribeClusterDisplayTabs
+    action = const.ACTION_DESCRIBE_CLUSTER_DISPLAY_TABS
+    print("action == %s" % (action))
+    ret = conn.describe_cluster_display_tabs(cluster=cluster_id,verbose=1,display_tabs="node_details")
+    print("describe_cluster_display_tabs ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
+    display_tabs = ret['display_tabs']
+    if display_tabs is None or len(display_tabs) == 0:
+        print("describe_cluster_display_tabs display_tabs is None")
+        return None
+    datas = display_tabs['data']
+    print("datas == %s" % (datas))
+
+    for data in datas:
+        print("data == %s" % (data))
+        if "primary" in data:
+            master_rdb_instance_id = data[0]
+
+    print("master_rdb_instance_id == %s" %(master_rdb_instance_id))
+    return master_rdb_instance_id
+
+def get_postgresql_cluster_standby_ip(conn,cluster_id):
+    print("get_postgresql_cluster_standby_ip cluster_id == %s" %(cluster_id))
+
+    standby_ip = None
+    # DescribeClusterDisplayTabs
+    action = const.ACTION_DESCRIBE_CLUSTER_DISPLAY_TABS
+    print("action == %s" % (action))
+    ret = conn.describe_cluster_display_tabs(cluster=cluster_id,verbose=1,display_tabs="node_details")
+    print("describe_cluster_display_tabs ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
+    display_tabs = ret['display_tabs']
+    if display_tabs is None or len(display_tabs) == 0:
+        print("describe_cluster_display_tabs display_tabs is None")
+        return None
+    datas = display_tabs['data']
+    print("datas == %s" % (datas))
+
+    for data in datas:
+        print("data == %s" % (data))
+        if "standby" in data:
+            standby_ip = data[1]
+
+    print("standby_ip == %s" %(standby_ip))
+    return standby_ip
+
 def get_postgresql_cluster_primary_ip(conn,cluster_id):
     print("get_postgresql_cluster_primary_ip cluster_id == %s" %(cluster_id))
 
@@ -33,10 +108,9 @@ def get_postgresql_cluster_primary_ip(conn,cluster_id):
     datas = display_tabs['data']
     print("datas == %s" % (datas))
 
-    primary = "primary"
     for data in datas:
         print("data == %s" % (data))
-        if primary in data:
+        if "primary" in data:
             primary_ip = data[1]
 
     print("primary_ip == %s" %(primary_ip))
@@ -62,6 +136,27 @@ def get_memcached_cluster_private_ip(conn,cluster_id):
 
     print("private_ip == %s" %(private_ip))
     return private_ip
+
+def get_memcached_cluster_cache_node_id(conn,cluster_id):
+    print("get_memcached_cluster_cache_node_id cluster_id == %s" %(cluster_id))
+    cache_node_id = None
+
+    # DescribeClusterNodes
+    action = const.ACTION_DESCRIBE_CLUSTER_NODES
+    print("action == %s" % (action))
+    ret = conn.describe_cluster_nodes(cluster=cluster_id,verbose=1,limit=1)
+    print("describe_cluster_nodes ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
+
+    node_set = ret['node_set']
+    if node_set is None or len(node_set) == 0:
+        print("describe_cluster_nodes node_set is None")
+        exit(-1)
+    for node in node_set:
+        cache_node_id = node.get("node_id")
+
+    print("cache_node_id == %s" %(cache_node_id))
+    return cache_node_id
 
 def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,standby_private_ip):
     print("子线程启动")
@@ -376,14 +471,51 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
             create_rdb_status = "True"
             # create_rdb_status 写入文件
             create_rdb_status_conf = "/opt/create_rdb_status_conf"
-            with open(create_rdb_status_conf, "w+") as f1:
-                f1.write("CREATE_RDB_STATUS %s" % (create_rdb_status))
+            with open(create_rdb_status_conf, "w+") as f:
+                f.write("CREATE_RDB_STATUS %s" % (create_rdb_status))
 
-            # master_ip 写入文件
-            master_ip_conf = "/opt/master_ip_conf"
-            ret = get_postgresql_cluster_primary_ip(conn,cluster_id)
-            with open(master_ip_conf, "w+") as f2:
-                f2.write("POSTGRESQL_ADDRESS %s" % (ret))
+            # cluster_id 写入文件
+            rdb_id_conf = "/opt/rdb_id_conf"
+            with open(rdb_id_conf, "w+") as f:
+                f.write("RDB_ID %s" % (cluster_id))
+
+            # rdb_master_ip 写入文件
+            rdb_master_ip_conf = "/opt/rdb_master_ip_conf"
+            rdb_master_ip = get_postgresql_cluster_primary_ip(conn,cluster_id)
+            print("get_postgresql_cluster_primary_ip == %s" % (rdb_master_ip))
+            if rdb_master_ip:
+                with open(rdb_master_ip_conf, "w+") as f:
+                    f.write("POSTGRESQL_ADDRESS %s" % (rdb_master_ip))
+
+            # rdb_topslave_ip 写入文件
+            rdb_topslave_ip_conf = "/opt/rdb_topslave_ip_conf"
+            rdb_topslave_ip = get_postgresql_cluster_standby_ip(conn,cluster_id)
+            print("get_postgresql_cluster_standby_ip rdb_topslave_ip == %s" % (rdb_topslave_ip))
+            if rdb_topslave_ip:
+                with open(rdb_topslave_ip_conf, "w+") as f:
+                    f.write("RDB_TOPSLAVE_IP %s" % (rdb_topslave_ip))
+
+            # master_rdb_instance_id 写入文件
+            master_rdb_instance_id_conf = "/opt/master_rdb_instance_id_conf"
+            master_rdb_instance_id = get_postgresql_cluster_master_rdb_instance_id(conn, cluster_id)
+            print("get_postgresql_cluster_master_rdb_instance_id master_rdb_instance_id == %s" % (master_rdb_instance_id))
+            if master_rdb_instance_id:
+                with open(master_rdb_instance_id_conf, "w+") as f:
+                    f.write("MASTER_RDB_INSTANCE_ID %s" % (master_rdb_instance_id))
+
+            # topslave_rdb_instance_id 写入文件
+            topslave_rdb_instance_id_conf = "/opt/topslave_rdb_instance_id_conf"
+            topslave_rdb_instance_id = get_postgresql_cluster_topslave_rdb_instance_id(conn, cluster_id)
+            print("get_postgresql_cluster_topslave_rdb_instance_id topslave_rdb_instance_id == %s" % (topslave_rdb_instance_id))
+            if topslave_rdb_instance_id:
+                with open(topslave_rdb_instance_id_conf, "w+") as f:
+                    f.write("TOPSLAVE_RDB_INSTANCE_ID %s" % (topslave_rdb_instance_id))
+
+            # attach tags
+            current_time = time.strftime("%Y-%m-%d", time.localtime())
+            tag_name = '桌面云数据库 %s' % (current_time)
+            Common.attach_tags_to_resource(conn, tag_name=tag_name, resource_type='cluster', resource_id=cluster_id)
+
         else:
             print("deploy_app_version postresql timeout")
             create_rdb_status =  "False"
@@ -398,14 +530,34 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
             # create_memcached ok
             create_memcached_status = "True"
             create_memcached_status_conf = "/opt/create_memcached_status_conf"
-            with open(create_memcached_status_conf, "w+") as f1:
-                f1.write("CREATE_MEMCACHED_STATUS %s" % (create_memcached_status))
+            with open(create_memcached_status_conf, "w+") as f:
+                f.write("CREATE_MEMCACHED_STATUS %s" % (create_memcached_status))
 
-            # memcached_ip 写入文件
-            memcached_ip_conf = "/opt/memcached_ip_conf"
-            ret = get_memcached_cluster_private_ip(conn,cluster_id)
-            with open(memcached_ip_conf, "w+") as f2:
-                f2.write("MEMCACHED_ADDRESS %s" % (ret))
+            # cache_id 写入文件
+            cache_id_conf = "/opt/cache_id_conf"
+            with open(cache_id_conf, "w+") as f:
+                f.write("CACHE_ID %s" % (cluster_id))
+
+            # cache_master_ip 写入文件
+            cache_master_ip_conf = "/opt/cache_master_ip_conf"
+            cache_master_ip = get_memcached_cluster_private_ip(conn, cluster_id)
+            print("get_memcached_cluster_private_ip cache_master_ip == %s" % (cache_master_ip))
+            if cache_master_ip:
+                with open(cache_master_ip_conf, "w+") as f:
+                    f.write("MEMCACHED_ADDRESS %s" % (cache_master_ip))
+
+            # cache_node_id 写入文件
+            cache_node_id_conf = "/opt/cache_node_id_conf"
+            cache_node_id = get_memcached_cluster_cache_node_id(conn, cluster_id)
+            print("get_memcached_cluster_cache_node_id cache_node_id == %s" % (cache_node_id))
+            if cache_node_id:
+                with open(cache_node_id_conf, "w+") as f:
+                    f.write("CACHE_NODE_ID %s" % (cache_node_id))
+
+            # attach tags
+            current_time = time.strftime("%Y-%m-%d", time.localtime())
+            tag_name = '桌面云缓存 %s' % (current_time)
+            Common.attach_tags_to_resource(conn, tag_name=tag_name, resource_type='cluster', resource_id=cluster_id)
         else:
             print("deploy_app_version memcached timeout")
             create_memcached_status = "False"
