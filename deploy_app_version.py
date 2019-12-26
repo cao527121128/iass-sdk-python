@@ -210,7 +210,7 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
             print("private_ips_list == %s" % (private_ips_list))
             conf = {
                 "cluster": {
-                    "name": "vdi-portal-postgresql",
+                    "name": "数据库服务",
                     "description": "postgresql",
                     "auto_backup_time": "-1",
                     "pg": {
@@ -295,7 +295,7 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
             print("primary_private_ip is None.The cluster uses automatically assigns private IP")
             conf = {
                 "cluster": {
-                    "name": "vdi-portal-postgresql",
+                    "name": "数据库服务",
                     "description": "postgresql",
                     "auto_backup_time": "-1",
                     "pg": {
@@ -384,7 +384,7 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
             print("private_ips_list == %s" % (private_ips_list))
             conf = {
                 "cluster":{
-                    "name":"vdi-portal-memcached",
+                    "name":"缓存服务",
                     "description":"memcached",
                     "memcached_node":{
                         "cpu":1,
@@ -413,7 +413,7 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
             print("primary_private_ip is None.The cluster uses automatically assigns private IP")
             conf = {
                 "cluster": {
-                    "name": "vdi-portal-memcached",
+                    "name": "缓存服务",
                     "description": "memcached",
                     "memcached_node": {
                         "cpu": 1,
@@ -475,6 +475,11 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
                 f.write("CREATE_RDB_STATUS %s" % (create_rdb_status))
 
             # cluster_id 写入文件
+            rdb_cluster_id_conf = "/opt/rdb_cluster_id_conf"
+            with open(rdb_cluster_id_conf, "w+") as f:
+                f.write("RDB_CLUSTER_ID %s" % (cluster_id))
+
+            # cluster_id 写入文件
             rdb_id_conf = "/opt/rdb_id_conf"
             with open(rdb_id_conf, "w+") as f:
                 f.write("RDB_ID %s" % (cluster_id))
@@ -532,6 +537,11 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
             create_memcached_status_conf = "/opt/create_memcached_status_conf"
             with open(create_memcached_status_conf, "w+") as f:
                 f.write("CREATE_MEMCACHED_STATUS %s" % (create_memcached_status))
+
+            # cluster_id 写入文件
+            cache_cluster_id_conf = "/opt/cache_cluster_id_conf"
+            with open(cache_cluster_id_conf, "w+") as f:
+                f.write("CACHE_CLUSTER_ID %s" % (cluster_id))
 
             # cache_id 写入文件
             cache_id_conf = "/opt/cache_id_conf"
