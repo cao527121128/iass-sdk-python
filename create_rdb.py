@@ -213,8 +213,8 @@ def create_rdb(conn,user_id,vxnet_id,master_private_ip,topslave_private_ip):
 
         # attach tags
         current_time = time.strftime("%Y-%m-%d", time.localtime())
-        tag_name = '桌面云数据库 %s' %(current_time)
-        Common.attach_tags_to_resource(conn,tag_name=tag_name,resource_type='rdb',resource_id=rdb_id)
+        tag_name = '桌面云数据库  %s' %(current_time)
+        Common.attach_tags_to_resource(conn,user_id=user_id,tag_name=tag_name,resource_type='rdb',resource_id=rdb_id)
 
     print("子线程结束")
 

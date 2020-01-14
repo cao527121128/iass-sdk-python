@@ -295,7 +295,7 @@ def create_loadbalancer(conn,user_id,vxnet_id,private_ips):
         # attach tags
         current_time = time.strftime("%Y-%m-%d", time.localtime())
         tag_name = '桌面云负载均衡器 %s' %(current_time)
-        Common.attach_tags_to_resource(conn,tag_name=tag_name,resource_type='loadbalancer',resource_id=loadbalancer_id)
+        Common.attach_tags_to_resource(conn,user_id=user_id,tag_name=tag_name,resource_type='loadbalancer',resource_id=loadbalancer_id)
 
     print("子线程结束")
 

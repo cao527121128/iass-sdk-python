@@ -117,9 +117,9 @@ def clone_instances(conn,user_id,resource_id,vxnet_id,private_ips=None):
         # attach tags
         current_time = time.strftime("%Y-%m-%d", time.localtime())
         tag_name = '桌面云服务器VDI1 %s' %(current_time)
-        Common.attach_tags_to_resource(conn,tag_name=tag_name,resource_type='instance',resource_id=cloned_instance_id)
+        Common.attach_tags_to_resource(conn,user_id=user_id,tag_name=tag_name,resource_type='instance',resource_id=cloned_instance_id)
         tag_name = '桌面云服务器VDI0 %s' % (current_time)
-        Common.attach_tags_to_resource(conn, tag_name=tag_name, resource_type='instance',resource_id=resource_id[0])
+        Common.attach_tags_to_resource(conn, user_id=user_id,tag_name=tag_name, resource_type='instance',resource_id=resource_id[0])
 
     print("子线程结束")
 

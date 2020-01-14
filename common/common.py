@@ -106,12 +106,12 @@ def get_job_status(conn,job_id):
     print("status == %s" %(status))
     return status
 
-def attach_tags_to_resource(conn,tag_name=None,resource_type=None,resource_id=None):
-    print("attach_tags_to_resource resource_type == %s resource_id == %s" % (resource_type,resource_id))
+def attach_tags_to_resource(conn,user_id=None,tag_name=None,resource_type=None,resource_id=None):
+    print("attach_tags_to_resource user_id == %s resource_type == %s resource_id == %s" % (user_id,resource_type,resource_id))
     # AttachTags
     action = const.ACTION_DESCRIBE_TAGS
     print("action == %s" % (action))
-    ret = conn.describe_tags(search_word=tag_name, offset=0, limit=100)
+    ret = conn.describe_tags(owner=user_id,search_word=tag_name, offset=0, limit=100)
     print("describe_tags ret == %s" % (ret))
     check_ret_code(ret, action)
     tag_set = ret['tag_set']

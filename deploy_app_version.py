@@ -519,7 +519,7 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
             # attach tags
             current_time = time.strftime("%Y-%m-%d", time.localtime())
             tag_name = '桌面云数据库 %s' % (current_time)
-            Common.attach_tags_to_resource(conn, tag_name=tag_name, resource_type='cluster', resource_id=cluster_id)
+            Common.attach_tags_to_resource(conn, user_id=user_id,tag_name=tag_name, resource_type='cluster', resource_id=cluster_id)
 
         else:
             print("deploy_app_version postresql timeout")
@@ -567,7 +567,7 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
             # attach tags
             current_time = time.strftime("%Y-%m-%d", time.localtime())
             tag_name = '桌面云缓存 %s' % (current_time)
-            Common.attach_tags_to_resource(conn, tag_name=tag_name, resource_type='cluster', resource_id=cluster_id)
+            Common.attach_tags_to_resource(conn,user_id=user_id, tag_name=tag_name, resource_type='cluster', resource_id=cluster_id)
         else:
             print("deploy_app_version memcached timeout")
             create_memcached_status = "False"

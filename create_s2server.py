@@ -275,7 +275,7 @@ def create_s2server(conn,user_id,vxnet_id,private_ips,instance_class):
         # attach tags
         current_time = time.strftime("%Y-%m-%d", time.localtime())
         tag_name = '桌面云文件服务器 %s' %(current_time)
-        Common.attach_tags_to_resource(conn,tag_name=tag_name,resource_type='s2_server',resource_id=s2_server_id)
+        Common.attach_tags_to_resource(conn,user_id=user_id,tag_name=tag_name,resource_type='s2_server',resource_id=s2_server_id)
 
     else:
         print("create_s2_server s2_server failed")

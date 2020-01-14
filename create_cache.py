@@ -126,7 +126,7 @@ def create_cache(conn,user_id,vxnet_id,private_ips=None):
         # attach tags
         current_time = time.strftime("%Y-%m-%d", time.localtime())
         tag_name = '桌面云缓存 %s' %(current_time)
-        Common.attach_tags_to_resource(conn,tag_name=tag_name,resource_type='cache',resource_id=cache_id)
+        Common.attach_tags_to_resource(conn,user_id=user_id,tag_name=tag_name,resource_type='cache',resource_id=cache_id)
 
     print("子线程结束")
 
