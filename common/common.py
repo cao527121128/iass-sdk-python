@@ -12,6 +12,8 @@ import sys
 import os
 import qingcloud.iaas.constants as const
 import json
+import ssl
+ssl._create_default_https_context=ssl._create_unverified_context
 
 # ---------------------------------------------
 #       Here puts common functions used in API
