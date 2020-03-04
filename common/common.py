@@ -28,8 +28,8 @@ def connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol):
         access_key_id,
         secret_access_key,
         host,
-        443,
-        'https'
+        port,
+        protocol
     )
     if conn < 0:
         print("connect_to_zone fail")
