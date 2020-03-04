@@ -260,14 +260,14 @@ def create_loadbalancer(conn,user_id,vxnet_id,private_ips):
         print("private_ips is None")
         action = const.ACTION_CREATE_LOADBALANCER
         print("action == %s" % (action))
-        ret = conn.create_loadbalancer(loadbalancer_name='桌面管理中心',loadbalancer_type=0,node_count=2,vxnet=vxnet_id,mode=1,owner=user_id)
+        ret = conn.create_loadbalancer(loadbalancer_name='桌面管理中心',loadbalancer_type=1,node_count=2,vxnet=vxnet_id,mode=1,owner=user_id)
         print("create_loadbalancer ret == %s" % (ret))
         Common.check_ret_code(ret, action)
     else:
         print("private_ips is %s" %(private_ips))
         action = const.ACTION_CREATE_LOADBALANCER
         print("action == %s" % (action))
-        ret = conn.create_loadbalancer(loadbalancer_name='桌面管理中心',loadbalancer_type=0,node_count=2,vxnet=vxnet_id,mode=1,owner=user_id,private_ip=private_ips)
+        ret = conn.create_loadbalancer(loadbalancer_name='桌面管理中心',loadbalancer_type=1,node_count=2,vxnet=vxnet_id,mode=1,owner=user_id,private_ip=private_ips)
         print("create_loadbalancer ret == %s" % (ret))
         Common.check_ret_code(ret, action)
 
