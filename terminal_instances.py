@@ -114,8 +114,8 @@ if __name__ == "__main__":
     opt_parser.add_option("-P", "--protocol", action="store", type="string", \
                           dest="protocol", help='protocol', default="")
 
-    opt_parser.add_option("-l", "--instance_id", action="store", type="string", \
-                          dest="instance_id", help='instance_id', default="")
+    opt_parser.add_option("-l", "--instance_ids", action="store", type="string", \
+                          dest="instance_ids", help='instance_ids', default="")
 
     (options, _) = opt_parser.parse_args(sys.argv)
 
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     host = options.host
     port = options.port
     protocol = options.protocol
-    instance_id = options.instance_id
+    instance_ids = Common.explode_array(options.instance_ids or "")
 
     print("zone_id:%s" % (zone_id))
     print("access_key_id:%s" % (access_key_id))
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     print("host:%s" % (host))
     print("port:%s" % (port))
     print("protocol:%s" % (protocol))
-    print("instance_id:%s" % (instance_id))
+    print("instance_ids:%s" % (instance_ids))
 
     #连接iaas后台
     conn = Common.connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
@@ -144,14 +144,15 @@ if __name__ == "__main__":
     print("get_user_id user_id == %s" % (user_id))
 
     # 创建子线程--先释放主机的ip资源  离开网络
-    t1 = threading.Thread(target=leave_vxnet, args=(conn,user_id,instance_id,))
-    t1.start()
-    t1.join()
+    for instance_id in instance_ids:
+        t1 = threading.Thread(target=leave_vxnet, args=(conn,user_id,instance_id,))
+        t1.start()
+        t1.join()
 
-    # 创建子线程--删除主机
-    t2 = threading.Thread(target=terminate_instances, args=(conn,user_id,instance_id,))
-    t2.start()
-    t2.join()
+        # 创建子线程--删除主机
+        t2 = threading.Thread(target=terminate_instances, args=(conn,user_id,instance_id,))
+        t2.start()
+        t2.join()
 
     print("主线程结束")
 
