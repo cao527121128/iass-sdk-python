@@ -68,22 +68,27 @@ def update_s2_servers(conn,user_id,s2_servers_id):
             break
     print("status == %s" % (status))
 
-    # Result is written to file
-    if status == "successful":
-        print("update_s2_servers s2_servers successful")
-        #s2server_ip 写入文件
-        s2server_ip_conf = "/opt/s2server_ip_conf"
-        s2server_ip = get_s2server_ip(conn,user_id,s2_servers_id)
-        print("get_s2server_ip s2server_ip == %s" %(s2server_ip))
-        if s2server_ip:
-            with open(s2server_ip_conf, "w+") as f1:
-                f1.write("S2SERVER_ADDRESS %s" %(s2server_ip))
+    # # Result is written to file
+    # if status == "successful":
+    #     print("update_s2_servers s2_servers successful")
+    #     #s2server_ip 写入文件
+    #     s2server_ip_conf = "/opt/s2server_ip_conf"
+    #     s2server_ip = get_s2server_ip(conn,user_id,s2_servers_id)
+    #     print("get_s2server_ip s2server_ip == %s" %(s2server_ip))
+    #     if s2server_ip:
+    #         with open(s2server_ip_conf, "w+") as f1:
+    #             f1.write("S2SERVER_ADDRESS %s" %(s2server_ip))
     print("子线程结束")
 
     return None
 
 def create_s2_account_vdi_host(conn,user_id,g_vdi_ip_list):
     print("create_s2_account_vdi_host user_id == %s g_vdi_ip_list == %s" %(user_id,g_vdi_ip_list))
+
+    if g_vdi_ip_list and not isinstance(g_vdi_ip_list, list):
+        g_vdi_ip_list = [g_vdi_ip_list]
+    print("g_vdi_ip_list == %s" % (g_vdi_ip_list))
+
     s2_account_id_list = []
 
     for vdi_ip in g_vdi_ip_list:
@@ -93,7 +98,6 @@ def create_s2_account_vdi_host(conn,user_id,g_vdi_ip_list):
         action = const.ACTION_DESCRIBE_S2_GROUPS
         print("action == %s" % (action))
         ret = conn.describe_s2_groups(owner=user_id,offset=0,limit=1,verbose=1,group_types=['NFS_GROUP'])
-        print("describe_s2_groups ret == %s" % (ret))
         Common.check_ret_code(ret, action)
 
         # get s2_group_id
@@ -111,7 +115,6 @@ def create_s2_account_vdi_host(conn,user_id,g_vdi_ip_list):
         s2_groups_list = [{"group_id":s2_group_id,"rw_flag":"rw"}]
         print("s2_groups_list == %s" % (s2_groups_list))
         ret = conn.create_s2_account(owner=user_id,account_name='vdi-portal-account',account_type='NFS',nfs_ipaddr=vdi_ip,s2_group=s2_group_id,opt_parameters='squash=no_root_squash,sync=sync',s2_groups=s2_groups_list)
-        print("create_s2_account ret == %s" % (ret))
         ret_code = ret.get("ret_code")
         if ret_code != 0:
             print("%s failed" % (action))
@@ -151,8 +154,8 @@ if __name__ == "__main__":
     opt_parser.add_option("-i", "--s2_server_id", action="store", type="string", \
                           dest="s2_server_id", help='s2_server_id', default="")
 
-    opt_parser.add_option("-d", "--vdi_ip", action="store", type="string", \
-                          dest="vdi_ip", help='vdi ip', default="")
+    opt_parser.add_option("-d", "--vdi_ips", action="store", type="string", \
+                          dest="vdi_ips", help='vdi ips', default="")
 
     (options, _) = opt_parser.parse_args(sys.argv)
 
@@ -163,7 +166,7 @@ if __name__ == "__main__":
     port = options.port
     protocol = options.protocol
     s2_server_id = options.s2_server_id
-    vdi_ip = options.vdi_ip
+    vdi_ips = Common.explode_array(options.vdi_ips or "")
 
     print("zone_id:%s" % (zone_id))
     print("access_key_id:%s" % (access_key_id))
@@ -172,7 +175,7 @@ if __name__ == "__main__":
     print("port:%s" % (port))
     print("protocol:%s" % (protocol))
     print("s2_server_id:%s" % (s2_server_id))
-    print("vdi_ip:%s" % (vdi_ip))
+    print("vdi_ips:%s" % (vdi_ips))
 
     #连接iaas后台
     conn = Common.connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
@@ -184,9 +187,14 @@ if __name__ == "__main__":
 
 
     #创建子线程--创建vnas服务访问资源账号 vdi客户端
-    t3 = threading.Thread(target=create_s2_account_vdi_host,args=(conn,user_id,[vdi_ip],))
+    t3 = threading.Thread(target=create_s2_account_vdi_host,args=(conn,user_id,vdi_ips,))
     t3.start()
     t3.join()
+
+    #在执行共享存储目标的所有修改、禁用、删除等操作之前请在客户端停止对共享存储目标的访问，并执行 umount 操作，否则可能会引起客户端无法响应。
+    for vdi_ip in vdi_ips:
+        print("vdi_ip == %s" %(vdi_ip))
+        os.system('ssh -o StrictHostKeyChecking=no root@%s "umount /mnt/nasdata"' % (vdi_ip))
 
     #创建子线程--更新共享存储服务器的配置信息
     t4 = threading.Thread(target=update_s2_servers,args=(conn,user_id,s2_server_id,))

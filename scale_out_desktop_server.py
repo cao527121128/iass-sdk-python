@@ -15,6 +15,7 @@ import os
 import qingcloud.iaas.constants as const
 import common.common as Common
 g_resource_ids = []
+g_cloned_instance_ips = []
 g_scale_loadbalancer_backends_ids = []
 
 def get_cloned_instance_ip(conn,user_id,instance_id):
@@ -52,6 +53,7 @@ def clone_instances(conn,user_id,resource_id,vxnet_id,private_ips=None,hostname=
         resource_id = [resource_id]
     print("resource_id == %s" %(resource_id))
     global g_resource_ids
+    global g_cloned_instance_ips
 
     if not private_ips:
         print("private_ips is None")
@@ -110,6 +112,9 @@ def clone_instances(conn,user_id,resource_id,vxnet_id,private_ips=None,hostname=
         cloned_instance_ip_conf = "/opt/cloned_%s_instance_ip_conf" %(hostname)
         with open(cloned_instance_ip_conf, "w+") as f1:
             f1.write("CLONED_%s_INSTANCE_IP %s" % (hostname.upper(),cloned_instance_ip))
+
+        if cloned_instance_ip not in g_cloned_instance_ips:
+            g_cloned_instance_ips.append(cloned_instance_ip)
 
         # cloned_instance_id 写入文件
         print("cloned_instance_id == %s" % (cloned_instance_id))
@@ -425,6 +430,14 @@ if __name__ == "__main__":
         scale_loadbalancer_backends_ids_conf = "/opt/scale_loadbalancer_backends_ids_conf"
         with open(scale_loadbalancer_backends_ids_conf, "w+") as f1:
             f1.write("SCALE_LOADBALANCER_BACKENDS_IDS %s" % (g_scale_loadbalancer_backends_ids_str))
+
+        # g_cloned_instance_ips 写入文件
+        print("g_cloned_instance_ips:%s" % (g_cloned_instance_ips))
+        g_cloned_instance_ips_str = ",".join(g_cloned_instance_ips)
+        print("g_cloned_instance_ips_str:%s" % (g_cloned_instance_ips_str))
+        scale_cloned_instance_ip_conf = "/opt/scale_cloned_instance_ip_conf"
+        with open(scale_cloned_instance_ip_conf, "w+") as f1:
+            f1.write("SCALE_CLONED_INSTANCE_IPS %s" % (g_cloned_instance_ips_str))
 
     print("主线程结束")
 
