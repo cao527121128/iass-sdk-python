@@ -35,7 +35,7 @@ def get_postgresql_cluster_topslave_rdb_instance_id(conn, cluster_id):
 
     for data in datas:
         print("data == %s" % (data))
-        if "standby" in data:
+        if "Standby" in data or "standby" in data:
             topslave_rdb_instance_id = data[0]
 
     print("topslave_rdb_instance_id == %s" %(topslave_rdb_instance_id))
@@ -60,7 +60,7 @@ def get_postgresql_cluster_master_rdb_instance_id(conn, cluster_id):
 
     for data in datas:
         print("data == %s" % (data))
-        if "primary" in data:
+        if "Master" in data or "primary" in data:
             master_rdb_instance_id = data[0]
 
     print("master_rdb_instance_id == %s" %(master_rdb_instance_id))
@@ -85,7 +85,7 @@ def get_postgresql_cluster_standby_ip(conn,cluster_id):
 
     for data in datas:
         print("data == %s" % (data))
-        if "standby" in data:
+        if "Standby" in data or "standby" in data:
             standby_ip = data[1]
 
     print("standby_ip == %s" %(standby_ip))
@@ -110,7 +110,7 @@ def get_postgresql_cluster_primary_ip(conn,cluster_id):
 
     for data in datas:
         print("data == %s" % (data))
-        if "primary" in data:
+        if "Master" in data or "primary" in data:
             primary_ip = data[1]
 
     print("primary_ip == %s" %(primary_ip))
