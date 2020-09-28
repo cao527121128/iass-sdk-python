@@ -123,3 +123,25 @@ class ImageAction(object):
             return None
 
         return self.conn.send_request(action, body)
+
+    def clone_images(self, image,
+                     image_name,
+                     count=1,
+                     **ignore):
+        """ clone image.
+        @param image: the ID of image whose attributes you want to clone.
+        @param image_name: Name of the image. It's a short name for the image
+                           that more meaningful than image id.
+        @param count: The count of the clone image.
+        """
+        action = const.ACTION_CLONE_IMAGES
+        valid_keys = ['image', 'image_name', 'count']
+        body = filter_out_none(locals(), valid_keys)
+        if not self.conn.req_checker.check_params(body,
+                                                  required_params=['image', 'image_name'],
+                                                  integer_params=[],
+                                                  list_params=[]
+                                                  ):
+            return None
+
+        return self.conn.send_request(action, body)

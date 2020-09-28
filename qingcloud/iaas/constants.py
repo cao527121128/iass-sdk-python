@@ -41,6 +41,7 @@ ACTION_DESCRIBE_IMAGES = "DescribeImages"
 ACTION_CAPTURE_INSTANCE = "CaptureInstance"
 ACTION_DELETE_IMAGES = "DeleteImages"
 ACTION_MODIFY_IMAGE_ATTRIBUTES = "ModifyImageAttributes"
+ACTION_CLONE_IMAGES = "CloneImages"
 
 # instances
 ACTION_DESCRIBE_INSTANCES = "DescribeInstances"
@@ -54,6 +55,8 @@ ACTION_RESIZE_INSTANCES = "ResizeInstances"
 ACTION_RESET_INSTANCES = "ResetInstances"
 ACTION_MODIFY_INSTANCE_ATTRIBUTES = "ModifyInstanceAttributes"
 ACTION_CLONE_INSTANCES = "CloneInstances"
+ACTION_DESCRIBE_BOTS = "DescribeBots"
+ACTION_CREATE_BROKERS = "CreateBrokers"
 
 # user data
 ACTION_UPLOAD_USERDATA_ATTACHMENT = "UploadUserDataAttachment"

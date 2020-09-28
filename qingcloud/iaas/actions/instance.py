@@ -33,6 +33,7 @@ class InstanceAction(object):
                            offset=None,
                            limit=None,
                            tags=None,
+                           instance_name=None,
                            **ignore):
         """ Describe instances filtered by conditions
         @param instances : the array of IDs of instances
@@ -48,7 +49,7 @@ class InstanceAction(object):
         """
         action = const.ACTION_DESCRIBE_INSTANCES
         valid_keys = ['instances', 'image_id', 'instance_type', 'status',
-                      'search_word', 'verbose', 'offset', 'limit', 'tags', 'owner']
+                      'search_word', 'verbose', 'offset', 'limit', 'tags', 'owner','instance_name']
         body = filter_out_none(locals(), valid_keys)
         if not self.conn.req_checker.check_params(body,
                                                   required_params=[],
@@ -102,6 +103,7 @@ class InstanceAction(object):
                       cpu_max=None,
                       mem_max=None,
                       os_disk_size=None,
+                      hyper_node_id=None,
                       **ignore):
         """ Create one or more instances.
         @param image_id : ID of the image you want to use, "img-12345"
@@ -139,7 +141,7 @@ class InstanceAction(object):
                       'volumes', 'need_userdata', 'userdata_type',
                       'userdata_value', 'userdata_path', 'instance_class',
                       'hostname', 'target_user', 'nic_mqueue', 'cpu_max', 'mem_max',
-                      'os_disk_size',
+                      'os_disk_size','hyper_node_id'
                       ]
         body = filter_out_none(locals(), valid_keys)
         if not self.conn.req_checker.check_params(body,
@@ -346,3 +348,44 @@ class InstanceAction(object):
             return None
 
         return self.conn.send_request(action, body, verb='POST')
+
+    def describe_bots(self, bots=None,
+                      status=None,
+                      limit=None,
+                      offset=None,
+                      search_word=None,
+                      verbose=None,
+                      sort_key=None,
+                      reverse=None,**ignore):
+        ''' Action:ACTION_DESCRIBE_BOTS
+            @param directive : the dictionary of params
+        '''
+
+        action = const.ACTION_DESCRIBE_BOTS
+        valid_keys = ["search_word","sort_key", "limit", "offset", "verbose", "bots", "status"]
+        body = filter_out_none(locals(), valid_keys)
+
+        if not self.conn.req_checker.check_params(body,
+                                  required_params=[],
+                                  integer_params=["limit", "offset", "verbose"]):
+            return None
+        return self.conn.send_request(action, body)
+
+    def create_brokers(self, instances,
+                       plugin=None,
+                       is_token=None,
+                       **ignore):
+        ''' Action:CreateBrokers
+            @param directive : the dictionary of params
+        '''
+        action = const.ACTION_CREATE_BROKERS
+        valid_keys = ['instances', 'plugin', "is_token"]
+        body = filter_out_none(locals(), valid_keys)
+
+        if not self.conn.req_checker.check_params(body,
+                                                  required_params=["instances"],
+                                                  integer_params=["plugin", "is_token"],
+                                                  list_params=["instances"]):
+            return None
+        return self.conn.send_request(action, body)
+
