@@ -158,7 +158,7 @@ def get_memcached_cluster_cache_node_id(conn,cluster_id):
     print("cache_node_id == %s" %(cache_node_id))
     return cache_node_id
 
-def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,standby_private_ip):
+def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,standby_private_ip,instance_class):
     print("子线程启动")
     print("deploy_app_version")
 
@@ -169,6 +169,7 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
     print("app_ids == %s" % (app_ids))
     print("primary_private_ip == %s" % (primary_private_ip))
     print("standby_private_ip == %s" % (standby_private_ip))
+    print("instance_class == %s" % (instance_class))
 
     # # DescribeApps
     action = const.ACTION_DESCRIBE_APPS
@@ -216,20 +217,20 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
                     "pg": {
                         "cpu": 2,
                         "memory": 4096,
-                        "instance_class": 0,
+                        "instance_class": instance_class,
                         "volume_size": 50
                     },
                     "ri": {
                         "cpu": 2,
                         "memory": 4096,
-                        "instance_class": 1,
+                        "instance_class": instance_class,
                         "count": 0,
                         "volume_size": 20
                     },
                     "pgpool": {
                         "cpu": 2,
                         "memory": 4096,
-                        "instance_class": 1,
+                        "instance_class": instance_class,
                         "count": 0,
                         "volume_size": 20
                     },
@@ -301,20 +302,20 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
                     "pg": {
                         "cpu": 2,
                         "memory": 4096,
-                        "instance_class": 0,
+                        "instance_class": instance_class,
                         "volume_size": 50
                     },
                     "ri": {
                         "cpu": 2,
                         "memory": 4096,
-                        "instance_class": 1,
+                        "instance_class": instance_class,
                         "count": 0,
                         "volume_size": 20
                     },
                     "pgpool": {
                         "cpu": 2,
                         "memory": 4096,
-                        "instance_class": 1,
+                        "instance_class": instance_class,
                         "count": 0,
                         "volume_size": 20
                     },
@@ -389,7 +390,7 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
                     "memcached_node":{
                         "cpu":1,
                         "memory":1024,
-                        "instance_class":0,
+                        "instance_class":instance_class,
                         "count":1
                     },
                     "vxnet":vxnet_id,
@@ -418,7 +419,7 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
                     "memcached_node": {
                         "cpu": 1,
                         "memory": 1024,
-                        "instance_class": 0,
+                        "instance_class": instance_class,
                         "count": 1
                     },
                     "vxnet": vxnet_id,
@@ -581,6 +582,31 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
 
     print("子线程结束")
 
+def get_instance_class(conn,user_id,vdi_resource_id):
+    print("get_instance_class user_id == %s vdi_resource_id == %s" %(user_id,vdi_resource_id))
+    instance_class = 0
+
+    if vdi_resource_id and not isinstance(vdi_resource_id, list):
+        vdi_resource_id = [vdi_resource_id]
+    print("vdi_resource_id == %s" %(vdi_resource_id))
+
+    # DescribeInstances
+    action = const.ACTION_DESCRIBE_INSTANCES
+    print("action == %s" % (action))
+    ret = conn.describe_instances(owner=user_id,instances=vdi_resource_id,verbose=1)
+    print("describe_instances ret == %s" % (ret))
+    Common.check_ret_code(ret, action)
+
+    # get instance_class
+    instance_set = ret['instance_set']
+    if instance_set is None or len(instance_set) == 0:
+        print("describe_instances instance_set is None")
+        exit(-1)
+    for instance in instance_set:
+        instance_class = instance.get("instance_class")
+
+    return instance_class
+
 if __name__ == "__main__":
     print("主线程启动")
 
@@ -616,6 +642,9 @@ if __name__ == "__main__":
     opt_parser.add_option("-t", "--standby_private_ip", action="store", type="string", \
                           dest="standby_private_ip", help='standby private ip', default="")
 
+    opt_parser.add_option("-r", "--vdi_resource_id", action="store", type="string", \
+                          dest="vdi_resource_id", help='vdi resource id', default="")
+
     (options, _) = opt_parser.parse_args(sys.argv)
 
     zone_id = options.zone_id
@@ -628,6 +657,7 @@ if __name__ == "__main__":
     app_ids = options.app_ids
     primary_private_ip = options.primary_private_ip or ""
     standby_private_ip = options.standby_private_ip or ""
+    vdi_resource_id = options.vdi_resource_id
 
     print("zone_id:%s" % (zone_id))
     print("access_key_id:%s" % (access_key_id))
@@ -639,6 +669,7 @@ if __name__ == "__main__":
     print("app_ids:%s" % (app_ids))
     print("primary_private_ip:%s" % (primary_private_ip))
     print("standby_private_ip:%s" % (standby_private_ip))
+    print("vdi_resource_id:%s" % (vdi_resource_id))
 
     #连接iaas后台
     conn = Common.connect_iaas(zone_id, access_key_id, secret_access_key, host,port,protocol)
@@ -648,8 +679,12 @@ if __name__ == "__main__":
     user_id = Common.get_user_id(conn,access_key_id)
     print("get_user_id user_id == %s" % (user_id))
 
+    # 获取VDI主机类型 get_instance_class
+    instance_class = get_instance_class(conn,user_id,vdi_resource_id)
+    print("get_instance_class instance_class == %s" % (instance_class))
+
     #创建子线程通过appcenter创建postgresql集群 部署指定数据库应用版本的集群
-    t = threading.Thread(target=deploy_app_version,args=(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,standby_private_ip,))
+    t = threading.Thread(target=deploy_app_version,args=(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,standby_private_ip,instance_class,))
     t.start()
     t.join()
 
