@@ -161,7 +161,7 @@ def create_new_volume(conn,user_id,volume_type):
     # CreateVolumes
     action = const.ACTION_CREATE_VOLUMES
     print("action == %s" % (action))
-    ret = conn.create_volumes(owner=user_id,volume_name="vdi-portal-nas",volume_type=volume_type,count=1,size=100,target_user=user_id)
+    ret = conn.create_volumes(owner=user_id,volume_name="vdi-portal-nas",volume_type=volume_type,count=1,size=200,target_user=user_id)
     print("create_volumes ret == %s" % (ret))
     Common.check_ret_code(ret, action)
 
