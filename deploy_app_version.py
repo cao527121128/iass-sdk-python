@@ -454,7 +454,7 @@ def deploy_app_version(conn,user_id,vxnet_id,zone_id,app_ids,primary_private_ip,
 
     # check job status
     num = 0
-    while num < 300:
+    while num < 1000:
         num = num + 1
         print("num == %d" % (num))
         time.sleep(1)
